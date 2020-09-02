@@ -1,0 +1,495 @@
+# flake8: noqa 501
+# Disable flake8 line-length check (E501), it makes this file harder to read
+
+
+class TiffConstant(int):
+    def __new__(cls, value, *args, **kwargs):
+        return super().__new__(cls, value)
+
+    def __init__(self, value, constantDict):
+        """
+        Create a constant.  The constant is at least a value and an
+        associated name.  It can have other properties.
+
+        :param value: an integer.
+        :param constantDict: a dictionary with at least a 'name' key.
+        """
+        self.__dict__.update(constantDict)
+        self.value = value
+
+    def __str__(self):
+        if hasattr(self, 'name') and str(self.name) != str(self.value):
+            return '%s %d (0x%X)' % (self.name, self.value, self.value)
+        return '%d (0x%X)' % (self.value, self.value)
+
+    def __getitem__(self, key):
+        if hasattr(self, str(key)):
+            return getattr(self, str(key))
+        raise KeyError(key)
+
+    def __int__(self):
+        return self.value
+
+    def __eq__(self, other):
+        if isinstance(other, TiffConstant):
+            return self.value == other.value and self.name == other.name
+        try:
+            intOther = int(other)
+            return self.value == intOther
+        except ValueError:
+            try:
+                intOther = int(other, 0)
+                return self.value == intOther
+            except ValueError:
+                pass
+        except TypeError:
+            return False
+        return self.name.lower() == other.lower()
+
+    def __contains__(self, other):
+        return hasattr(self, str(other))
+
+    def __hash__(self):
+        return hash((type(self).__name__, self.value))
+
+    def get(self, key, default=None):
+        if hasattr(self, str(key)):
+            return getattr(self, str(key))
+        return default
+
+
+class TiffTag(TiffConstant):
+    def isOffsetData(self):
+        return 'bytecounts' in self
+
+    def isIFD(self):
+        datatypes = self.get('datatype', None)
+        if not isinstance(datatypes, tuple):
+            datatypes = (datatypes, )
+        for datatype in datatypes:
+            if datatype in (Datatype.IFD, Datatype.IFD8):
+                return True
+        return False
+
+
+class TiffConstantSet(object):
+    def __init__(self, setNameOrClass, setDict):
+        """
+        Create a set of TiffConstant values.
+
+        :param setNameOrClass: the set name or class; this is the class name
+            for the constants.  If a class, this must be a subclass of
+            TiffConstant.
+        :param setDict: a dictionary to turn into TiffConstant values.  The
+            keys should be integers and the values dictionaries with at least a
+            name key.
+        """
+        if isinstance(setNameOrClass, str):
+            setClass = type(setNameOrClass, (TiffConstant,), {})
+            globals()[setNameOrClass] = setClass
+        else:
+            setClass = setNameOrClass
+        entries = {}
+        names = {}
+        for k, v in setDict.items():
+            entry = setClass(k, v)
+            entries[k] = entry
+            names[entry.name.lower()] = entry
+            names[str(int(entry))] = entry
+            if 'altnames' in v:
+                for altname in v['altnames']:
+                    names[altname.lower()] = entry
+        self.__dict__.update(names)
+        self._entries = entries
+
+    def __getattr__(self, key):
+        if isinstance(key, TiffConstant):
+            key = int(key)
+        if isinstance(key, int):
+            key = str(key)
+        else:
+            try:
+                key = str(int(key, 0))
+            except (ValueError, TypeError):
+                pass
+        if key.lower() in self.__dict__:
+            return self.__dict__[key.lower()]
+        raise AttributeError("'%s' object has no attribute '%s'" % (type(self).__name__, key))
+
+    def __getitem__(self, key):
+        if isinstance(key, TiffConstant):
+            key = int(key)
+        return getattr(self, str(key))
+
+
+Datatype = TiffConstantSet('TiffDatatype', {
+    1: {'pack': 'B', 'name': 'BYTE', 'size': 1, 'desc': 'UINT8 - unsigned byte'},
+    2: {'pack': None, 'name': 'ASCII', 'size': 1, 'desc': 'null-terminated string'},
+    3: {'pack': 'H', 'name': 'SHORT', 'size': 2, 'desc': 'UINT16 - unsigned short'},
+    4: {'pack': 'L', 'name': 'LONG', 'size': 4, 'desc': 'UINT32 - unsigned long', 'altnames': {'DWORD'}},
+    5: {'pack': 'LL', 'name': 'RATIONAL', 'size': 8, 'desc': 'two UINT32 - two unsigned longs forming a numerator and a denominator'},
+    6: {'pack': 'b', 'name': 'SBYTE', 'size': 1, 'desc': 'INT8 - signed byte'},
+    7: {'pack': None, 'name': 'UNDEFINED', 'size': 1, 'desc': 'arbitrary binary data'},
+    8: {'pack': 'h', 'name': 'SSHORT', 'size': 2, 'desc': 'INT16 - signed short'},
+    9: {'pack': 'l', 'name': 'SLONG', 'size': 4, 'desc': 'INT32 - signed long'},
+    10: {'pack': 'll', 'name': 'SRATIONAL', 'size': 8, 'desc': 'two INT32 - two signed longs forming a numerator and a denominator'},
+    11: {'pack': 'f', 'name': 'FLOAT', 'size': 4, 'desc': 'binary32 - IEEE-754 single-precision float'},
+    12: {'pack': 'd', 'name': 'DOUBLE', 'size': 8, 'desc': 'binary64 - IEEE-754 double precision float'},
+    13: {'pack': 'L', 'name': 'IFD', 'size': 4, 'desc': 'UINT32 - unsigned long with the location of an Image File Directory'},
+    16: {'pack': 'Q', 'name': 'LONG8', 'size': 8, 'desc': 'UINT64 - unsigned long long'},
+    17: {'pack': 'q', 'name': 'SLONG8', 'size': 8, 'desc': 'INT64 - signed long long'},
+    18: {'pack': 'Q', 'name': 'IFD8', 'size': 8, 'desc': 'UINT64 - unsigned long long with the location of an Image File Directory'},
+})
+
+NewSubfileType = TiffConstantSet('TiffNewSubfileType', {
+    0: {'name': 'ReducedImage', 'bitfield': True, 'desc': 'Image is a reduced-resolution version of another image in this TIFF file'},
+    1: {'name': 'Page', 'bitfield': True, 'desc': 'Image is a single page of a multi-page image'},
+    2: {'name': 'Mask', 'bitfield': True, 'desc': 'Image defines a transparency mask for another image in this TIFF file'},
+})
+
+OldSubfileType = TiffConstantSet('TiffOldSubfileType', {
+    1: {'name': 'Image', 'desc': 'Full-resolution image data'},
+    2: {'name': 'ReducedImage', 'desc': 'Reduced-resolution image data'},
+    3: {'name': 'Page', 'desc': 'A single page of a multi-page image (see the PageNumber field description'},
+})
+
+Compression = TiffConstantSet('TiffCompression', {
+    1: {'name': 'None', 'desc': 'No compression, but pack data into bytes as tightly as possible leaving no unused bits except at the end of a row'},
+    2: {'name': 'CCITTRLE', 'desc': 'CCITT Group 3 1-Dimensional Modified Huffman run-length encoding'},
+    3: {'name': 'CCITT_T4', 'altnames': {'CCITTFAX3'}, 'desc': 'CCITT Group 3 fax encoding (T4-encoding: CCITT T.4 bi-level encoding)'},
+    4: {'name': 'CCITT_T6', 'altnames': {'CCITTFAX4'}, 'desc': 'CCITT Group 4 fax encoding (T6-encoding: CCITT T.6 bi-level encoding'},
+    5: {'name': 'LZW'},
+    6: {'name': 'OldJPEG', 'desc': 'Pre-version 6.0 JPEG'},
+    7: {'name': 'JPEG'},
+    8: {'name': 'AdobeDeflate', 'desc': 'Adobe deflate'},
+    9: {'name': 'T85', 'desc': 'TIFF/FX T.85 JBIG compression'},
+    10: {'name': 'T43', 'desc': 'TIFF/FX T.43 colour by layered JBIG compression'},
+    32766: {'name': 'NeXT', 'desc': 'NeXT 2-bit RLE'},
+    32771: {'name': 'CCITTRLEW', 'desc': '#1 w/ word alignment'},
+    32773: {'name': 'Packbits', 'desc': 'Macintosh RLE'},
+    32809: {'name': 'Thunderscan', 'desc': 'ThunderScan RLE'},
+    32895: {'name': 'IT8CTPad', 'desc': 'IT8 CT w/padding'},
+    32896: {'name': 'IT8LW', 'desc': 'IT8 Linework RLE'},
+    32897: {'name': 'IT8MP', 'desc': 'IT8 Monochrome picture'},
+    32898: {'name': 'IT8BL', 'desc': 'IT8 Binary line art'},
+    32908: {'name': 'PixarFilm', 'desc': 'Pixar companded 10bit LZW'},
+    32909: {'name': 'PixarLog', 'desc': 'Pixar companded 11bit ZIP'},
+    32946: {'name': 'Deflate', 'desc': 'Deflate compression'},
+    32947: {'name': 'DCS', 'desc': 'Kodak DCS encoding'},
+    33003: {'name': 'JP2kYCbCr', 'desc': 'JPEG 2000 with YCbCr format as used by Aperio'},
+    33005: {'name': 'JP2kRGB', 'desc': 'JPEG 2000 with RGB format as used by Aperio'},
+    34661: {'name': 'JBIG', 'desc': 'ISO JBIG'},
+    34676: {'name': 'SGILOG', 'desc': 'SGI Log Luminance RLE'},
+    34677: {'name': 'SGILOG24', 'desc': 'SGI Log 24-bit packed'},
+    34712: {'name': 'JP2000', 'desc': 'Leadtools JPEG2000'},
+    34887: {'name': 'LERC', 'desc': 'ESRI Lerc codec: https://github.com/Esri/lerc'},
+    34925: {'name': 'LZMA', 'desc': 'LZMA2'},
+    50000: {'name': 'ZSTD', 'desc': 'ZSTD'},
+    50001: {'name': 'WEBP', 'desc': 'WEBP'},
+})
+
+Photometric = TiffConstantSet('TiffPhotometric', {
+    0: {'name': 'MinIsWhite', 'desc': 'Min value is white'},
+    1: {'name': 'MinIsBlack', 'desc': 'Min value is black'},
+    2: {'name': 'RGB', 'desc': 'RGB color model'},
+    3: {'name': 'Palette', 'desc': 'Indexed color map'},
+    4: {'name': 'Mask', 'desc': 'Mask'},
+    5: {'name': 'Separated', 'desc': 'Color separations'},
+    6: {'name': 'YCbCr', 'desc': 'CCIR 601'},
+    8: {'name': 'CIELab', 'desc': '1976 CIE L*a*b*'},
+    9: {'name': 'ICCLab', 'desc': 'ICC L*a*b*'},
+    10: {'name': 'ITULab', 'desc': 'ITU L*a*b*'},
+    32803: {'name': 'CFA', 'desc': 'Color filter array'},
+    32844: {'name': 'LogL', 'desc': 'CIE Log2(L)'},
+    32845: {'name': 'LogLuv', 'desc': 'CIE Log2(L) (u\',v\')'},
+})
+
+Thresholding = TiffConstantSet('TiffThresholding', {
+    1: {'name': 'Bilevel', 'desc': 'No dithering or halftoning has been applied to the image data'},
+    2: {'name': 'Halftone', 'desc': 'An ordered dither or halftone technique has been applied to the image data'},
+    3: {'name': 'ErrorDiffuse', 'desc': 'A randomized process such as error diffusion has been applied to the image data'},
+})
+
+FillOrder = TiffConstantSet('TiffFillOrder', {
+    1: {'name': 'MSBToLSB', 'desc': 'Pixels are arranged within a byte such that pixels with lower column values are stored in the higher-order bits of the byte'},
+    2: {'name': 'LSBToMSB', 'desc': 'Pixels are arranged within a byte such that pixels with lower column values are stored in the lower-order bits of the byte'},
+})
+
+Orientation = TiffConstantSet('Orientation', {
+    1: {'name': 'TopLeft', 'desc': 'Row 0 top, column 0 left'},
+    2: {'name': 'TopRight', 'desc': 'Row 0 top, column 0 right'},
+    3: {'name': 'BottomRight', 'desc': 'Row 0 bottom, column 0 right'},
+    4: {'name': 'BottomLeft', 'desc': 'Row 0 bottom, column 0 left'},
+    5: {'name': 'LeftTop', 'desc': 'Row 0 left, column 0 top'},
+    6: {'name': 'RightTop', 'desc': 'Row 0 right, column 0 top'},
+    7: {'name': 'RightBottom', 'desc': 'Row 0 right, column 0 bottom'},
+    8: {'name': 'LeftBottom', 'desc': 'Row 0 left, column 0 bottom'},
+})
+
+PlanarConfig = TiffConstantSet('PlanarConfig', {
+    1: {'name': 'Chunky', 'altnames': {'Contig', 'Continuous'}, 'desc': 'The component values for each pixel are stored contiguously'},
+    2: {'name': 'Planar', 'altnames': {'Separate'}, 'desc': 'The components are stored in separate “component planes.'},
+})
+
+T4Options = TiffConstantSet('TiffT4Options', {
+    0: {'name': '2DEncoding', 'bitfield': True, 'desc': 'Set for two dimensional encoding'},
+    1: {'name': 'Uncompressed', 'bitfield': True, 'desc': 'Set if uncompressed mode is used'},
+    2: {'name': 'FillBits', 'bitfield': True, 'desc': 'Set if fill bits have been added'},
+})
+
+T6Options = TiffConstantSet('TiffT6Options', {
+    1: {'name': 'Uncompressed', 'bitfield': True, 'desc': 'Set if uncompressed mode is used'},
+})
+
+ResolutionUnit = TiffConstantSet('ResolutionUnit', {
+    1: {'name': 'None', 'desc': 'No absolute unit of measurement'},
+    2: {'name': 'Inch', 'altnames': {'in', 'inches'}},
+    3: {'name': 'Centimeter', 'altnames': {'cm'}},
+})
+
+Predictor = TiffConstantSet('Predictor', {
+    1: {'name': 'None', 'desc': 'No predictor'},
+    2: {'name': 'Horizontal'},
+    3: {'name': 'FloatingPoint'},
+})
+
+CleanFaxData = TiffConstantSet('CleanFaxData', {
+    0: {'name': 'All'},
+    1: {'name': 'Regenerated'},
+    2: {'name': 'Present'},
+})
+
+InkSet = TiffConstantSet('InkSet', {
+    1: {'name': 'CMYK'},
+    2: {'name': 'NotCMYK'},
+})
+
+ExtraSamples = TiffConstantSet('ExtraSamples', {
+    0: {'name': 'Unspecified'},
+    1: {'name': 'AssociatedAlpha'},
+    2: {'name': 'UnassociatedAlpha'},
+})
+
+SampleFormat = TiffConstantSet('SampleFormat', {
+    1: {'name': 'uint', 'altnames': {'UnsignedInteger'}},
+    2: {'name': 'int'},
+    3: {'name': 'float', 'altnames': {'IEEEFP'}},
+    4: {'name': 'Undefined'},
+    5: {'name': 'ComplexInt'},
+    6: {'name': 'ComplexFloat'},
+})
+
+Indexed = TiffConstantSet('Indexed', {
+    0: {'name': 'NotIndexed'},
+    1: {'name': 'Indexed'},
+})
+
+Tag = TiffConstantSet(TiffTag, {
+    254: {'name': 'NewSubfileType', 'altnames': {'SubfileType'}, 'datatype': Datatype.LONG, 'count': 1, 'bitfield': NewSubfileType, 'desc': 'A general indication of the kind of data contained in this subfile', 'default': 0},
+    255: {'name': 'OldSubfileType', 'datatype': Datatype.SHORT, 'count': 1, 'enum': OldSubfileType, 'desc': 'A general indication of the kind of data contained in this subfile.  See NewSubfileType'},
+    256: {'name': 'ImageWidth', 'datatype': (Datatype.SHORT, Datatype.LONG), 'count': 1, 'desc': 'The number of columns in the image, i.e., the number of pixels per scanline'},
+    257: {'name': 'ImageLength', 'datatype': (Datatype.SHORT, Datatype.LONG), 'count': 1, 'desc': 'The number of rows (sometimes described as scanlines) in the image'},
+    258: {'name': 'BitsPerSample', 'datatype': Datatype.SHORT, 'desc': 'Number of bits per component', 'default': 1},
+    259: {'name': 'Compression', 'datatype': Datatype.SHORT, 'count': 1, 'enum': Compression, 'desc': 'Compression scheme used on the image data'},
+    262: {'name': 'Photometric', 'datatype': Datatype.SHORT, 'count': 1, 'enum': Photometric, 'desc': 'The color space of the image data'},
+    263: {'name': 'Threshholding', 'datatype': Datatype.SHORT, 'count': 1, 'enum': Thresholding, 'desc': 'For black and white TIFF files that represent shades of gray, the technique used to convert from gray to black and white pixels'},
+    264: {'name': 'CellWidth', 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'The width of the dithering or halftoning matrix used to create a dithered or halftoned bilevel file'},
+    265: {'name': 'CellLength', 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'The length of the dithering or halftoning matrix used to create a dithered or halftoned bilevel file'},
+    266: {'name': 'FillOrder', 'datatype': Datatype.SHORT, 'count': 1, 'enum': FillOrder, 'desc': 'The logical order of bits within a byte'},
+    269: {'name': 'DocumentName', 'datatype': Datatype.ASCII, 'desc': 'The name of the document from which this image was scanned'},
+    270: {'name': 'ImageDescription', 'datatype': Datatype.ASCII, 'desc': 'A string that describes the subject of the image'},
+    271: {'name': 'Make', 'datatype': Datatype.ASCII, 'desc': 'The scanner manufacturer'},
+    272: {'name': 'Model', 'datatype': Datatype.ASCII, 'desc': 'The scanner model name or number'},
+    273: {'name': 'StripOffsets', 'datatype': (Datatype.SHORT, Datatype.LONG, Datatype.LONG8), 'bytecounts': 'StripByteCounts', 'desc': 'The byte offset of each strip with respect to the beginning of the TIFF file'},
+    274: {'name': 'Orientation', 'datatype': Datatype.SHORT, 'count': 1, 'enum': Orientation, 'desc': 'The orientation of the image with respect to the rows and columns'},
+    277: {'name': 'SamplesPerPixel', 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'The number of components per pixel'},
+    278: {'name': 'RowsPerStrip', 'datatype': (Datatype.SHORT, Datatype.LONG), 'count': 1, 'desc': 'The number of rows per strip'},
+    279: {'name': 'StripByteCounts', 'datatype': (Datatype.SHORT, Datatype.LONG, Datatype.LONG8), 'desc': 'For each strip, the number of bytes in the strip after compression'},
+    280: {'name': 'MinSampleValue', 'datatype': Datatype.SHORT, 'desc': 'The minimum component value used'},
+    281: {'name': 'MaxSampleValue', 'datatype': Datatype.SHORT, 'desc': 'The maximum component value used'},
+    282: {'name': 'XResolution', 'datatype': Datatype.RATIONAL, 'count': 1, 'desc': 'The number of pixels per ResolutionUnit in the ImageWidth direction'},
+    283: {'name': 'YResolution', 'datatype': Datatype.RATIONAL, 'count': 1, 'desc': 'The number of pixels per ResolutionUnit in the ImageLength direction'},
+    284: {'name': 'PlanarConfig', 'datatype': Datatype.SHORT, 'count': 1, 'enum': PlanarConfig, 'desc': 'How the components of each pixel are stored'},
+    285: {'name': 'PageName', 'datatype': Datatype.ASCII, 'desc': 'The name of the page from which this image was scanned'},
+    286: {'name': 'Xposition', 'datatype': Datatype.RATIONAL, 'count': 1, 'desc': 'The X offset in ResolutionUnits of the left side of the image, with respect to the left side of the page'},
+    287: {'name': 'Yposition', 'datatype': Datatype.RATIONAL, 'count': 1, 'desc': 'The Y offset in ResolutionUnits of the top of the image, with respect to the top of the page'},
+    288: {'name': 'FreeOffsets', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 'FreeByteCounts', 'desc': 'For each string of contiguous unused bytes in a TIFF file, the byte offset of the string'},
+    289: {'name': 'FreeByteCounts', 'datatype': (Datatype.LONG, Datatype.LONG8), 'desc': 'For each string of contiguous unused bytes in a TIFF file, the number of bytes in the string'},
+    290: {'name': 'GrayResponseUnit', 'altnames': {'GreyResponseUnit'}, 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'The precision of the information contained in the GrayResponseCurve.  The denominator is 10^(this value)', 'default': 2},
+    291: {'name': 'GrayResponseCurve', 'altnames': {'GreyResponseCurve'}, 'datatype': Datatype.SHORT, 'desc': 'For grayscale data, the optical density of each possible pixel value'},
+    292: {'name': 'T4Options', 'altnames': {'Group3Options'}, 'datatype': Datatype.LONG, 'count': 1, 'bitfield': T4Options, 'default': 0},
+    293: {'name': 'T6Options', 'altnames': {'Group4Options'}, 'datatype': Datatype.LONG, 'count': 1, 'bitfield': T6Options, 'default': 0},
+    296: {'name': 'ResolutionUnit', 'datatype': Datatype.SHORT, 'count': 1, 'enum': ResolutionUnit, 'desc': 'Units for XResolution and YResolution', 'default': ResolutionUnit.Inch},
+    297: {'name': 'PageNumber', 'datatype': Datatype.SHORT, 'count': 2, 'desc': '0-based page number of the document and total pages of the document'},
+    300: {'name': 'ColorResponseUunit', 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'The precision of the information contained in the GrayResponseCurve.  The denominator is 10^(this value)'},
+    301: {'name': 'TransferFunction', 'datatype': Datatype.SHORT, 'desc': 'Describes a transfer function for the image in tabular style'},
+    305: {'name': 'Software', 'datatype': Datatype.ASCII, 'desc': 'Name and version number of the software package(s) used to create the image'},
+    306: {'name': 'DateTime', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of image creation', 'format': '%Y:%m:%d %H:%M:%S'},
+    315: {'name': 'Artist', 'datatype': Datatype.ASCII, 'desc': 'Person who created the image'},
+    316: {'name': 'HostComputer', 'datatype': Datatype.ASCII, 'desc': 'The computer and/or operating system in use at the time of image creation'},
+    317: {'name': 'Predictor', 'datatype': Datatype.SHORT, 'count': 1, 'enum': Predictor, 'desc': 'A predictor to apply before encoding', 'default': Predictor['None']},
+    318: {'name': 'WhitePoint', 'datatype': Datatype.RATIONAL, 'count': 2, 'desc': 'The chromaticity of the white point of the image'},
+    319: {'name': 'PrimaryChromaticities', 'datatype': Datatype.RATIONAL, 'count': 6, 'desc': 'The chromaticities of the primaries of the image'},
+    320: {'name': 'ColorMap', 'datatype': Datatype.SHORT, 'desc': 'This field defines a Red-Green-Blue color map for palette color images'},
+    321: {'name': 'HalftoneHints', 'datatype': Datatype.SHORT, 'count': 2},
+    322: {'name': 'TileWidth', 'datatype': (Datatype.SHORT, Datatype.LONG), 'desc': 'The tile width in pixels'},
+    323: {'name': 'TileLength', 'datatype': (Datatype.SHORT, Datatype.LONG), 'desc': 'The tile length (height) in pixels'},
+    324: {'name': 'TileOffsets', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 'TileByteCounts', 'desc': 'For each tile, the byte offset of that tile'},
+    325: {'name': 'TileByteCounts', 'datatype': (Datatype.LONG, Datatype.LONG8), 'desc': 'For each tile, the number of (compressed) bytes in that tile'},
+    326: {'name': 'BadFaxLines', 'datatype': (Datatype.SHORT, Datatype.LONG)},
+    327: {'name': 'CleanFaxData', 'datatype': Datatype.SHORT, 'count': 1, 'enum': CleanFaxData},
+    328: {'name': 'ConsecutiveBadFaxLines', 'datatype': (Datatype.SHORT, Datatype.LONG)},
+    330: {'name': 'SubIFD', 'datatype': (Datatype.IFD, Datatype.IFD8), 'desc': 'A list of additional images'},
+    332: {'name': 'InkSet', 'datatype': Datatype.SHORT, 'count': 1, 'enum': InkSet},
+    333: {'name': 'InkNames', 'datatype': Datatype.ASCII},
+    334: {'name': 'NumberOfInks', 'datatype': Datatype.SHORT, 'count': 1},
+    336: {'name': 'DotRange', 'datatype': (Datatype.BYTE, Datatype.SHORT)},
+    337: {'name': 'TargetPrinter', 'datatype': Datatype.ASCII},
+    338: {'name': 'ExtraSamples', 'datatype': Datatype.SHORT, 'count': 1, 'enum': ExtraSamples},
+    339: {'name': 'SampleFormat', 'datatype': Datatype.SHORT, 'enum': SampleFormat, 'desc': 'How to interpret each data sample in a pixel', 'default': SampleFormat.UINT},
+    340: {'name': 'SMinSampleValue', 'desc': 'The minimum sample value'},
+    341: {'name': 'SMaxSampleValue', 'desc': 'The maximum sample value'},
+    343: {'name': 'ClipPath', 'datatype': Datatype.BYTE},
+    344: {'name': 'XClipPathUnits', 'datatype': Datatype.DWORD},
+    345: {'name': 'YClipPathUnits', 'datatype': Datatype.DWORD},
+    346: {'name': 'Indexed', 'datatpe': Datatype.SHORT, 'enum': Indexed, 'desc': 'Indexed images are images where the pixels do not represent color values, but rather an index', 'default': Indexed.NotIndexed},
+    347: {'name': 'JPEGTables'},
+    351: {'name': 'OpiProxy'},
+    400: {'name': 'GlobalParametersIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},  # Add reference to GlobalParametersTag when that exists
+    401: {'name': 'ProfileType'},
+    402: {'name': 'FaxProfile'},
+    403: {'name': 'CodingMethods'},
+    404: {'name': 'VersionYear'},
+    405: {'name': 'ModeNumber'},
+    433: {'name': 'Decode'},
+    434: {'name': 'ImageBaseColor'},
+    435: {'name': 'T82Options'},
+    512: {'name': 'JPEGPROC'},
+    513: {'name': 'JPEGIFOFFSET'},
+    514: {'name': 'JPEGIFBYTECOUNT'},
+    515: {'name': 'JPEGRESTARTINTERVAL'},
+    517: {'name': 'JPEGLOSSLESSPREDICTORS'},
+    518: {'name': 'JPEGPOINTTRANSFORM'},
+    519: {'name': 'JPEGQTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 64},
+    520: {'name': 'JPEGDCTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 17},
+    521: {'name': 'JPEGACTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 256},
+    529: {'name': 'YCBCRCOEFFICIENTS'},
+    530: {'name': 'YCBCRSUBSAMPLING'},
+    531: {'name': 'YCBCRPOSITIONING'},
+    532: {'name': 'REFERENCEBLACKWHITE'},
+    559: {'name': 'STRIPROWCOUNTS'},
+    700: {'name': 'XMLPacket'},
+    32781: {'name': 'OPIIMAGEID'},
+    32953: {'name': 'REFPTS'},
+    32954: {'name': 'REGIONTACKPOINT'},
+    32955: {'name': 'REGIONWARPCORNERS'},
+    32956: {'name': 'REGIONAFFINE'},
+    32995: {'name': 'MATTEING'},
+    32996: {'name': 'DATATYPE'},
+    32997: {'name': 'IMAGEDEPTH'},
+    32998: {'name': 'TILEDEPTH'},
+    33300: {'name': 'PIXAR_IMAGEFULLWIDTH'},
+    33301: {'name': 'PIXAR_IMAGEFULLLENGTH'},
+    33302: {'name': 'PIXAR_TEXTUREFORMAT'},
+    33303: {'name': 'PIXAR_WRAPMODES'},
+    33304: {'name': 'PIXAR_FOVCOT'},
+    33305: {'name': 'PIXAR_MATRIX_WORLDTOSCREEN'},
+    33306: {'name': 'PIXAR_MATRIX_WORLDTOCAMERA'},
+    33405: {'name': 'WRITERSERIALNUMBER'},
+    33421: {'name': 'CFAREPEATPATTERNDIM'},
+    33422: {'name': 'CFAPATTERN'},
+    33432: {'name': 'COPYRIGHT'},
+    33723: {'name': 'RICHTIFFIPTC'},
+    34016: {'name': 'IT8SITE'},
+    34017: {'name': 'IT8COLORSEQUENCE'},
+    34018: {'name': 'IT8HEADER'},
+    34019: {'name': 'IT8RASTERPADDING'},
+    34020: {'name': 'IT8BITSPERRUNLENGTH'},
+    34021: {'name': 'IT8BITSPEREXTENDEDRUNLENGTH'},
+    34022: {'name': 'IT8COLORTABLE'},
+    34023: {'name': 'IT8IMAGECOLORINDICATOR'},
+    34024: {'name': 'IT8BKGCOLORINDICATOR'},
+    34025: {'name': 'IT8IMAGECOLORVALUE'},
+    34026: {'name': 'IT8BKGCOLORVALUE'},
+    34027: {'name': 'IT8PIXELINTENSITYRANGE'},
+    34028: {'name': 'IT8TRANSPARENCYINDICATOR'},
+    34029: {'name': 'IT8COLORCHARACTERIZATION'},
+    34030: {'name': 'IT8HCUSAGE'},
+    34031: {'name': 'IT8TRAPINDICATOR'},
+    34032: {'name': 'IT8CMYKEQUIVALENT'},
+    34232: {'name': 'FRAMECOUNT'},
+    34377: {'name': 'PHOTOSHOP'},
+    34665: {'name': 'EXIFIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},  # Add reference to EXIFTag when that exists
+    34675: {'name': 'ICCPROFILE'},
+    34732: {'name': 'IMAGELAYER'},
+    34750: {'name': 'JBIGOPTIONS'},
+    34853: {'name': 'GPSIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},  # Add reference to GPSTag when that exists
+    34908: {'name': 'FAXRECVPARAMS'},
+    34909: {'name': 'FAXSUBADDRESS'},
+    34910: {'name': 'FAXRECVTIME'},
+    34911: {'name': 'FAXDCS'},
+    34929: {'name': 'FEDEX_EDR'},
+    37439: {'name': 'STONITS'},
+    40965: {'name': 'InteroperabilityIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},  # Add reference to InteroperabilityTag when that exists
+    50674: {'name': 'LERC_PARAMETERS'},
+    50706: {'name': 'DNGVERSION'},
+    50707: {'name': 'DNGBACKWARDVERSION'},
+    50708: {'name': 'UNIQUECAMERAMODEL'},
+    50709: {'name': 'LOCALIZEDCAMERAMODEL'},
+    50710: {'name': 'CFAPLANECOLOR'},
+    50711: {'name': 'CFALAYOUT'},
+    50712: {'name': 'LINEARIZATIONTABLE'},
+    50713: {'name': 'BLACKLEVELREPEATDIM'},
+    50714: {'name': 'BLACKLEVEL'},
+    50715: {'name': 'BLACKLEVELDELTAH'},
+    50716: {'name': 'BLACKLEVELDELTAV'},
+    50717: {'name': 'WHITELEVEL'},
+    50718: {'name': 'DEFAULTSCALE'},
+    50719: {'name': 'DEFAULTCROPORIGIN'},
+    50720: {'name': 'DEFAULTCROPSIZE'},
+    50721: {'name': 'COLORMATRIX1'},
+    50722: {'name': 'COLORMATRIX2'},
+    50723: {'name': 'CAMERACALIBRATION1'},
+    50724: {'name': 'CAMERACALIBRATION2'},
+    50725: {'name': 'REDUCTIONMATRIX1'},
+    50726: {'name': 'REDUCTIONMATRIX2'},
+    50727: {'name': 'ANALOGBALANCE'},
+    50728: {'name': 'ASSHOTNEUTRAL'},
+    50729: {'name': 'ASSHOTWHITEXY'},
+    50730: {'name': 'BASELINEEXPOSURE'},
+    50731: {'name': 'BASELINENOISE'},
+    50732: {'name': 'BASELINESHARPNESS'},
+    50733: {'name': 'BAYERGREENSPLIT'},
+    50734: {'name': 'LINEARRESPONSELIMIT'},
+    50735: {'name': 'CAMERASERIALNUMBER'},
+    50736: {'name': 'LENSINFO'},
+    50737: {'name': 'CHROMABLURRADIUS'},
+    50738: {'name': 'ANTIALIASSTRENGTH'},
+    50739: {'name': 'SHADOWSCALE'},
+    50740: {'name': 'DNGPRIVATEDATA'},
+    50741: {'name': 'MAKERNOTESAFETY'},
+    50778: {'name': 'CALIBRATIONILLUMINANT1'},
+    50779: {'name': 'CALIBRATIONILLUMINANT2'},
+    50780: {'name': 'BESTQUALITYSCALE'},
+    50781: {'name': 'RAWDATAUNIQUEID'},
+    50827: {'name': 'ORIGINALRAWFILENAME'},
+    50828: {'name': 'ORIGINALRAWFILEDATA'},
+    50829: {'name': 'ACTIVEAREA'},
+    50830: {'name': 'MASKEDAREAS'},
+    50831: {'name': 'ASSHOTICCPROFILE'},
+    50832: {'name': 'ASSHOTPREPROFILEMATRIX'},
+    50833: {'name': 'CURRENTICCPROFILE'},
+    50834: {'name': 'CURRENTPREPROFILEMATRIX'},
+    # Hamamatsu tags
+    65420: {'name': 'NDPI_FORMAT_FLAG', 'source': 'hamamatsu'},
+    65421: {'name': 'NDPI_SOURCELENS', 'source': 'hamamatsu'},
+    65422: {'name': 'NDPI_XOFFSET', 'source': 'hamamatsu'},
+    65423: {'name': 'NDPI_YOFFSET', 'source': 'hamamatsu'},
+    65424: {'name': 'NDPI_FOCAL_PLANE', 'source': 'hamamatsu'},
+    65426: {'name': 'NDPI_MCU_STARTS', 'source': 'hamamatsu'},
+    65427: {'name': 'NDPI_REFERENCE', 'source': 'hamamatsu'},
+    65442: {'name': 'NDPI_NDPSN', 'source': 'hamamatsu'},  # not offical name
+    65449: {'name': 'NDPI_PROPERTY_MAP', 'source': 'hamamatsu'},
+    # End Hamamatsu tags
+    65535: {'name': 'DCSHUESHIFTVALUES'},
+})

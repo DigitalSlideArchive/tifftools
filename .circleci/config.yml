@@ -1,0 +1,110 @@
+version: 2.1
+commands:
+  tox:
+    description: "Run tox"
+    parameters:
+      env:
+        type: string
+    steps:
+      - run:
+          name: Run tests via tox
+          # Piping through cat does less buffering of the output but can
+          # consume the exit code
+          command: tox -e << parameters.env >> | cat; test ${PIPESTATUS[0]} -eq 0
+  coverage:
+    description: "Upload coverage"
+    steps:
+      - run:
+          name: Install Codecov client
+          command: pip install codecov
+      - run:
+          name: Upload coverage
+          # Retry as codecov can be flaky
+          command: for i in $(seq 1 10); do [ $i -gt 1 ] && echo "retrying $i" && sleep 5; codecov --required --disable search pycov gcov --root project --file .tox/coverage/py_coverage.xml .tox/coverage/cobertura-coverage.xml && s=0 && break || s=$?; done; (exit $s)
+
+jobs:
+  py36:
+    docker:
+      - image: python:3.6
+    steps:
+      - checkout
+      - tox:
+          env: py36
+      - coverage
+  py37:
+    docker:
+      - image: python:3.7
+    steps:
+      - checkout
+      - tox:
+          env: py37
+      - coverage
+  py38:
+    docker:
+      - image: python:3.8
+    steps:
+      - checkout
+      - tox:
+          env: py38
+      - coverage
+  lint_and_docs:
+    docker:
+      - image: python:3.8
+    steps:
+      - checkout
+      - tox:
+          env: flake8
+  release:
+    docker:
+      - image: python:3.8
+    steps:
+      - checkout
+      - deploy:
+          name: Run tests via tox
+          # Piping through cat does less buffering of the output but can
+          # consume the exit code
+          command: tox -e release | cat; test ${PIPESTATUS[0]} -eq 0
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - py36:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - py37:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - py38:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - lint_and_docs:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - release:
+          requires:
+            - py36
+            - py37
+            - py38
+            - lint_and_docs
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              only: master
