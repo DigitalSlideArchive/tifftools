@@ -2,7 +2,6 @@ import os
 
 import pooch
 
-
 registry = {
     # Aperio file with JP2K compression.
     # Source: TCGA-CV-7242-11A-01-TS1.1838afb1-9eee-4a70-9ae3-50e3ab45e242.svs

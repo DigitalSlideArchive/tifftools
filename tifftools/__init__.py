@@ -5,12 +5,8 @@ import math
 import os
 import sys
 
-from .constants import (
-    Datatype, TiffDatatype,
-    Tag, TiffTag,
-)
+from .constants import Datatype, Tag, TiffDatatype, TiffTag
 from .tifftools import read_tiff, write_tiff
-
 
 logger = logging.getLogger(__name__)
 
