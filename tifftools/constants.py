@@ -46,6 +46,9 @@ class TiffConstant(int):
             return False
         return self.name.lower() == other.lower()
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __contains__(self, other):
         return hasattr(self, str(other))
 
@@ -102,6 +105,9 @@ class TiffConstantSet(object):
         self.__dict__.update(names)
         self._entries = entries
 
+    def __contains__(self, other):
+        return hasattr(self, str(other))
+
     def __getattr__(self, key):
         if isinstance(key, TiffConstant):
             key = int(key)
@@ -119,7 +125,10 @@ class TiffConstantSet(object):
     def __getitem__(self, key):
         if isinstance(key, TiffConstant):
             key = int(key)
-        return getattr(self, str(key))
+        try:
+            return getattr(self, str(key))
+        except AttributeError:
+            raise KeyError(key)
 
 
 Datatype = TiffConstantSet('TiffDatatype', {
