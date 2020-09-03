@@ -11,6 +11,13 @@ from .tifftools import read_tiff, write_tiff
 logger = logging.getLogger(__name__)
 
 
+def tiff_merge(*args, **kwargs):
+    """
+    Alias for tiff_concat.
+    """
+    return tiff_merge(*args, **kwargs)
+
+
 def tiff_concat(output, source, overwrite=False, **kwargs):
     """
     Concatenate a list of soruce files into a single output file.
@@ -68,6 +75,13 @@ def _tiff_dump_ifds(ifds, max, titlePrefix='', linePrefix='', tagSet=Tag):
                     max,
                     subTitlePrefix + '%d, ' % subidx,
                     subLinePrefix, Tag if tag == Tag.SubIFD else None)
+
+
+def tiff_info(*args, **kwargs):
+    """
+    Alias for tiff_dump.
+    """
+    return tiff_dump(*args, **kwargs)
 
 
 def tiff_dump(source, max=20, *args, **kwargs):
@@ -173,7 +187,7 @@ def main(args=None):
 
     parserSplit = subparsers.add_parser(
         'split',
-        help='split [--subifds] source [prefix]',
+        help='split [--subifds] [--overwrite] source [prefix]',
         description='Split IFDs into separate files.')
     parserSplit.add_argument('source', help='Source file to split.')
     parserSplit.add_argument('prefix', nargs='?', help='Prefix of split files.')
@@ -188,7 +202,7 @@ def main(args=None):
     parserConcat = subparsers.add_parser(
         'concat',
         aliases=['merge'],
-        help='concat output source [source ...]',
+        help='concat [--overwrite] output source [source ...]',
         description='Concatenate multiple files into a single TIFF.')
     parserConcat.add_argument(
         'output', help='Output file.')
@@ -198,17 +212,17 @@ def main(args=None):
         '--overwrite', '-y', action='store_true',
         help='Allow overwriting an existing output file.')
 
-    parserConcat = subparsers.add_parser(
+    parserInfo = subparsers.add_parser(
         'dump',
         aliases=['info'],
-        help='dump source',
+        help='dump [--max MAX] source',
         description='Print contents of a TIFF file.')
-    parserConcat.add_argument(
+    parserInfo.add_argument(
         'source', help='Source file.')
-    parserConcat.add_argument(
+    parserInfo.add_argument(
         '--max', '-m', type=int, help='Maximum items to display.', default=20)
 
-    for parser in (secondaryParser, parserSplit, parserConcat):
+    for parser in (secondaryParser, parserSplit, parserConcat, parserInfo):
         for argument in argumentsForAllParsers:
             parser.add_argument(*argument['args'], **argument['kwargs'])
 
@@ -237,6 +251,8 @@ __all__ = (
 
     'tiff_concat',
     'tiff_dump',
+    'tiff_info',
+    'tiff_merge',
     'tiff_split',
 
     'main',
