@@ -6,7 +6,6 @@ import struct
 
 from .constants import Datatype, Tag, TiffTag
 
-
 logger = logging.getLogger(__name__)
 
 
