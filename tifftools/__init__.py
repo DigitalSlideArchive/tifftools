@@ -74,7 +74,7 @@ def _tiff_dump_ifds(ifds, max, titlePrefix='', linePrefix='', tagSet=Tag):
                     subifds,
                     max,
                     subTitlePrefix + '%d, ' % subidx,
-                    subLinePrefix, Tag if tag == Tag.SubIFD else None)
+                    subLinePrefix, getattr(tag, 'tagset', None))
 
 
 def tiff_info(*args, **kwargs):
