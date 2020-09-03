@@ -7,6 +7,9 @@ commands:
         type: string
     steps:
       - run:
+          name: Install tox
+          command: pip install tox
+      - run:
           name: Run tests via tox
           # Piping through cat does less buffering of the output but can
           # consume the exit code
@@ -59,8 +62,11 @@ jobs:
       - image: python:3.8
     steps:
       - checkout
+      - run:
+          name: Install tox
+          command: pip install tox
       - deploy:
-          name: Run tests via tox
+          name: Run release command via tox
           # Piping through cat does less buffering of the output but can
           # consume the exit code
           command: tox -e release | cat; test ${PIPESTATUS[0]} -eq 0
