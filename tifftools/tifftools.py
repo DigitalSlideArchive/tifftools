@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 # TODO:
-#  warn on duplicate tags
 #  Possibly raise exceptions on any warning
 
 
@@ -119,7 +118,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
         if count * Datatype[taginfo['type']].size > datalen:
             taginfo['offset'] = data
         if tag in ifd['tags']:
-            print('duplicate tag %d in %s: data at %d and %d' % (
+            logger.warning('Duplicate tag %d in %s: data at %d and %d' % (
                 tag, ifd['path'], ifd['tags'][tag]['datapos'], taginfo['datapos']))
         ifd['tags'][tag] = taginfo
     if info['bigtiff']:
@@ -176,7 +175,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
                 nextifd = subifdOffset
                 while nextifd:
                     nextifd = read_ifd(
-                        tiff, info, nextifd, subifdRecord, Tag if tag == Tag.SubIFD else None)
+                        tiff, info, nextifd, subifdRecord, getattr(tag, 'tagset', None))
 
 
 def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
@@ -260,7 +259,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
             if tag.isOffsetData():
                 if isinstance(tag.bytecounts, str):
                     data = write_tag_data(
-                        dest, src, data, ifd['tags'][int(Tag[tag.bytecounts])]['data'])
+                        dest, src, data, ifd['tags'][int(tagSet[tag.bytecounts])]['data'])
                 else:
                     data = write_tag_data(
                         dest, src, data, [tag.bytecounts] * count)
@@ -326,7 +325,7 @@ def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag):
             for ifdInSubifd in subifd:
                 nextSubifdPtr = write_ifd(
                     dest, bom, bigtiff, ifdInSubifd, nextSubifdPtr,
-                    Tag if tag == Tag.SubIFD else None)
+                    getattr(tag, 'tagset', None))
             subifdPtr += tagdatalen
 
 
