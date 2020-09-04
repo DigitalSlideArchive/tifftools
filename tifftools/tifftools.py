@@ -115,6 +115,10 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
             'count': count,
             'datapos': tiff.tell() - datalen,
         }
+        if datatype not in Datatype:
+            logger.warn(
+                'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
+            continue
         if count * Datatype[taginfo['type']].size > datalen:
             taginfo['offset'] = data
         if tag in ifd['tags']:
