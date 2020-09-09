@@ -293,6 +293,26 @@ Indexed = TiffConstantSet('Indexed', {
     1: {'name': 'Indexed'},
 })
 
+JPEGProc = TiffConstantSet('JPEGProc', {
+    1: {'name': 'Baseline'},
+    2: {'name': 'LosslessHuffman'},
+})
+
+JPEGLosslessPredictors = TiffConstantSet('JPEGLosslessPredictors', {
+    1: {'name': 'A'},
+    2: {'name': 'B'},
+    3: {'name': 'C'},
+    4: {'name': 'AplusBminusC'},
+    5: {'name': 'AplusHalfBminusC'},
+    6: {'name': 'BplusHalhAminusC'},
+    7: {'name': 'HalfAplusB'},
+})
+
+YCbCrPositioning = TiffConstantSet('YCbCrPositioning', {
+    1: {'name': 'Centered'},
+    2: {'name': 'Cosited'},
+})
+
 EXIFTag = TiffConstantSet(TiffTag, {
     33434: {'datatype': Datatype.RATIONAL, 'name': 'ExposureTime'},
     33437: {'datatype': Datatype.RATIONAL, 'name': 'FNumber'},
@@ -465,10 +485,10 @@ Tag = TiffConstantSet(TiffTag, {
     343: {'name': 'ClipPath', 'datatype': Datatype.BYTE},
     344: {'name': 'XClipPathUnits', 'datatype': Datatype.DWORD},
     345: {'name': 'YClipPathUnits', 'datatype': Datatype.DWORD},
-    346: {'name': 'Indexed', 'datatpe': Datatype.SHORT, 'enum': Indexed, 'desc': 'Indexed images are images where the pixels do not represent color values, but rather an index', 'default': Indexed.NotIndexed},
-    347: {'name': 'JPEGTables'},
+    346: {'name': 'Indexed', 'datatype': Datatype.SHORT, 'enum': Indexed, 'desc': 'Indexed images are images where the pixels do not represent color values, but rather an index', 'default': Indexed.NotIndexed},
+    347: {'name': 'JPEGTables', 'datatype': Datatype.UNDEFINED},
     351: {'name': 'OpiProxy'},
-    400: {'name': 'GlobalParametersIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},  # Add reference to GlobalParametersTag when that exists
+    400: {'name': 'GlobalParametersIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},
     401: {'name': 'ProfileType'},
     402: {'name': 'FaxProfile'},
     403: {'name': 'CodingMethods'},
@@ -477,22 +497,22 @@ Tag = TiffConstantSet(TiffTag, {
     433: {'name': 'Decode'},
     434: {'name': 'ImageBaseColor'},
     435: {'name': 'T82Options'},
-    512: {'name': 'JPEGPROC'},
-    513: {'name': 'JPEGIFOFFSET'},
-    514: {'name': 'JPEGIFBYTECOUNT'},
-    515: {'name': 'JPEGRESTARTINTERVAL'},
-    517: {'name': 'JPEGLOSSLESSPREDICTORS'},
-    518: {'name': 'JPEGPOINTTRANSFORM'},
+    512: {'name': 'JPEGProc', 'datatype': Datatype.SHORT, 'count': 1, 'enum': JPEGProc},
+    513: {'name': 'JPEGIFOffset', 'datatype': (Datatype.LONG, Datatype.LONG8), 'count': 1, 'bytecounts': 'JPEGIFByteCount'},
+    514: {'name': 'JPEGIFByteCount', 'datatype': (Datatype.LONG, Datatype.LONG8), 'count': 1},
+    515: {'name': 'JPEGRestartInterval', 'datatype': Datatype.SHORT, 'count': 1},
+    517: {'name': 'JPEGLosslessPredictors', 'datatype': Datatype.SHORT, 'enum': JPEGLosslessPredictors},
+    518: {'name': 'JPEGPointTransform', 'datatype': Datatype.SHORT},
     519: {'name': 'JPEGQTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 64},
     520: {'name': 'JPEGDCTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 17},
     521: {'name': 'JPEGACTables', 'datatype': (Datatype.LONG, Datatype.LONG8), 'bytecounts': 16 + 256},
-    529: {'name': 'YCBCRCOEFFICIENTS'},
-    530: {'name': 'YCBCRSUBSAMPLING'},
-    531: {'name': 'YCBCRPOSITIONING'},
-    532: {'name': 'REFERENCEBLACKWHITE'},
-    559: {'name': 'STRIPROWCOUNTS'},
+    529: {'name': 'YCbCrCoefficients', 'datatype': Datatype.RATIONAL, 'count': 3},
+    530: {'name': 'YCbCrSubsampling', 'datatype': Datatype.SHORT, 'count': 2},
+    531: {'name': 'YCbCrPositioning', 'datatype': Datatype.SHORT, 'count': 1, 'enum': YCbCrPositioning},
+    532: {'name': 'ReferenceBlackWhite', 'datatype': Datatype.RATIONAL, 'count': 6},
+    559: {'name': 'StripRowCounts', 'datatype': Datatype.LONG},
     700: {'name': 'XMLPacket'},
-    32781: {'name': 'OPIIMAGEID'},
+    32781: {'name': 'OPIImageID'},
     32953: {'name': 'REFPTS'},
     32954: {'name': 'REGIONTACKPOINT'},
     32955: {'name': 'REGIONWARPCORNERS'},
@@ -608,3 +628,4 @@ Tag = TiffConstantSet(TiffTag, {
 })
 
 Tag.SubIFD.tagset = Tag
+Tag.GlobalParametersIFD.tagset = Tag
