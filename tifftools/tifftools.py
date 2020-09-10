@@ -45,11 +45,23 @@ def check_offset(fptr, offset, length):
 def read_tiff(path):
     """
     Read the non-imaging data from a TIFF and return a Python structure with
-    the results.
+    the results.  The path may optionally be terminated with
+    [,<IFD #>[,[<SubIFD tag name or number>:]<SubIFD #>[,<IFD #>...]]
+    If a component is not specified, all of the IFDs from that level are used,
+    e.g., ",1" will read IFD 1 and all subifds, ",1,0" or ",1:SubIFD:0" will
+    read the chain of IFDs in the first SubIFD record, ",1,0,2" will read IFD 2
+    from IFD 1's first SubIFD.
 
     :param path: the file to read.
     :returns: a dictionary of information on the tiff file.
     """
+    limitIFDs = None
+    for splits in range(1, len(str(path).split(','))):
+        parts = str(path).rsplit(',', splits)
+        if os.path.exists(parts[0]):
+            limitIFDs = parts[1:]
+            path = parts[0]
+            break
     info = {
         'path': path,
         'size': os.path.getsize(path),
@@ -73,6 +85,42 @@ def read_tiff(path):
         while nextifd:
             nextifd = read_ifd(tiff, info, nextifd, info['ifds'])
     logger.debug('read_tiff: %s', info)
+    if limitIFDs:
+        info = read_tiff_limit_ifds(info, limitIFDs)
+    return info
+
+
+def read_tiff_limit_ifds(info, limitRecords, tagSet=Tag):
+    """
+    Based on a list of ifd limits, reduce the ifds returned.  The list
+    alternates between <IFD #> and [tag number or name:]<SubIFD #>.
+
+    :param info: tiff file information dictionary.
+    :param limitRecords: a list of limit records.
+    :param tagSet: the TiffConstantSet class to use for tags.
+    :returns: tiff file information dictionary with reduced IFDs.
+    """
+    if not limitRecords or not len(limitRecords):
+        return info
+    ifd = info['ifds'][int(limitRecords[0])]
+    if len(limitRecords) > 1:
+        tagName, subIFDNum = 'SubIFD', limitRecords[1]
+        if ':' in limitRecords[1]:
+            tagName, subIFDNum = limitRecords[1].split(':', 1)
+        try:
+            tag = tagSet[tagName]
+            nextTagSet = tag.get('tagset')
+        except Exception:
+            tag = int(tagName)
+            nextTagSet = None
+        ifds = ifd['tags'][int(tag)]['ifds'][int(subIFDNum)]
+    else:
+        ifds = [ifd]
+    info = info.copy()
+    info['ifds'] = ifds
+    if len(limitRecords) > 2:
+        info = read_tiff_limit_ifds(info, limitRecords[2:], nextTagSet)
+    info['ifdReduction'] = limitRecords
     return info
 
 
@@ -161,7 +209,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
                 bom + Datatype[taginfo['type']].pack * taginfo['count'], rawdata))
         elif Datatype[taginfo['type']] == Datatype.ASCII:
             taginfo['data'] = rawdata.rstrip(b'\x00').decode()
-            # Handle null-separated lists
+            # TODO: Handle null-separated lists
         else:
             taginfo['data'] = rawdata
         if ((hasattr(tag, 'isIFD') and tag.isIFD()) or
@@ -173,13 +221,16 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
             subifdOffsets = struct.unpack(
                 bom + ('Q' if info['bigtiff'] else 'L') * taginfo['count'],
                 tiff.read(taginfo['count'] * typesize))
-            for subifdOffset in subifdOffsets:
+            for subidx, subifdOffset in enumerate(subifdOffsets):
                 subifdRecord = []
                 taginfo['ifds'].append(subifdRecord)
                 nextifd = subifdOffset
                 while nextifd:
                     nextifd = read_ifd(
                         tiff, info, nextifd, subifdRecord, getattr(tag, 'tagset', None))
+                    if subidx + 1 < len(subifdOffsets) and nextifd == subifdOffsets[subidx + 1]:
+                        logger.warning('SubIFDs are double referenced')
+                        break
 
 
 def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):

@@ -171,6 +171,10 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
     description = 'Tiff tools to handle all tags and IFDs.'
+    epilog = """All inputs can specify specific IFDs and sub-IFDs by
+appending [,<IFD-#>[,[<tag-name-or-number>:]<SubIFD-#>[,<IFD-#>...]]
+to the source path.  For instance, to only use the second IFD of sample.tiff,
+use 'sample.tiff,1'."""
     argumentsForAllParsers = [{
         'args': ('--verbose', '-v'),
         'kwargs': dict(action='count', default=0, help='Increase output')
@@ -178,7 +182,7 @@ def main(args=None):
         'args': ('--silent', '-s'),
         'kwargs': dict(action='count', default=0, help='Decrease output')
     }]
-    mainParser = argparse.ArgumentParser(description=description)
+    mainParser = argparse.ArgumentParser(description=description, epilog=epilog)
     secondaryParser = argparse.ArgumentParser(description=description, add_help=False)
     subparsers = mainParser.add_subparsers(
         dest='command',
@@ -188,7 +192,8 @@ def main(args=None):
     parserSplit = subparsers.add_parser(
         'split',
         help='split [--subifds] [--overwrite] source [prefix]',
-        description='Split IFDs into separate files.')
+        description='Split IFDs into separate files.',
+        epilog=epilog)
     parserSplit.add_argument('source', help='Source file to split.')
     parserSplit.add_argument('prefix', nargs='?', help='Prefix of split files.')
     parserSplit.add_argument(
@@ -203,7 +208,8 @@ def main(args=None):
         'concat',
         aliases=['merge'],
         help='concat [--overwrite] output source [source ...]',
-        description='Concatenate multiple files into a single TIFF.')
+        description='Concatenate multiple files into a single TIFF.',
+        epilog=epilog)
     parserConcat.add_argument(
         'output', help='Output file.')
     parserConcat.add_argument(
@@ -216,7 +222,8 @@ def main(args=None):
         'dump',
         aliases=['info'],
         help='dump [--max MAX] source',
-        description='Print contents of a TIFF file.')
+        description='Print contents of a TIFF file.',
+        epilog=epilog)
     parserInfo.add_argument(
         'source', help='Source file.')
     parserInfo.add_argument(
@@ -233,7 +240,7 @@ def main(args=None):
     for k, v in vars(secondary).items():
         setattr(args, k, v)
     logging.basicConfig(
-        stream=sys.stderr, level=max(1, logging.WARNING - 10 * (args.verbose + args.silent)))
+        stream=sys.stderr, level=max(1, logging.WARNING - 10 * (args.verbose - args.silent)))
     logger.debug('Parsed arguments: %r', args)
     func = globals().get('tiff_' + args.command)
     func(**vars(args))
