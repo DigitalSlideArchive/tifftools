@@ -318,6 +318,8 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                 else:
                     data = write_tag_data(
                         dest, src, data, [tag.bytecounts] * count)
+                taginfo = taginfo.copy()
+                taginfo['type'] = Datatype.LONG8 if bigtiff else Datatype.LONG
             if Datatype[taginfo['type']].pack:
                 pack = Datatype[taginfo['type']].pack
                 count //= len(pack)
