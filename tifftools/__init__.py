@@ -1,5 +1,6 @@
 import argparse
 import copy
+import json
 import logging
 import math
 import os
@@ -84,6 +85,13 @@ def tiff_info(*args, **kwargs):
     return tiff_dump(*args, **kwargs)
 
 
+class ExtendedJsonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return 'bytes:' + repr(obj)
+        return str(obj)
+
+
 def tiff_dump(source, max=20, *args, **kwargs):
     """
     Print the tiff information.
@@ -92,6 +100,9 @@ def tiff_dump(source, max=20, *args, **kwargs):
     :param max: the maximum number of items to display for lists.
     """
     info = read_tiff(source)
+    if kwargs.get('json'):
+        json.dump(info, sys.stdout, indent=2, cls=ExtendedJsonEncoder)
+        return
     sys.stdout.write('Header: 0x%02x%02x <%s-endian> <%sTIFF>\n' % (
         info['header'][0], info['header'][1],
         'big' if info['bigEndian'] else 'little',
@@ -228,6 +239,9 @@ use 'sample.tiff,1'."""
         'source', help='Source file.')
     parserInfo.add_argument(
         '--max', '-m', type=int, help='Maximum items to display.', default=20)
+    parserInfo.add_argument(
+        '--json', action='store_true',
+        help='Output as json.')
 
     for parser in (secondaryParser, parserSplit, parserConcat, parserInfo):
         for argument in argumentsForAllParsers:
@@ -242,8 +256,11 @@ use 'sample.tiff,1'."""
     logging.basicConfig(
         stream=sys.stderr, level=max(1, logging.WARNING - 10 * (args.verbose - args.silent)))
     logger.debug('Parsed arguments: %r', args)
-    func = globals().get('tiff_' + args.command)
-    func(**vars(args))
+    if args.command:
+        func = globals().get('tiff_' + args.command)
+        func(**vars(args))
+    else:
+        mainParser.print_help(sys.stdout)
 
 
 # See http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library
