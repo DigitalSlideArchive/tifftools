@@ -14,6 +14,8 @@ registry = {
     'philips.ptif': 'sha512:ec0ec688537080e4ec2abb3978c14577df87250a2c0af42beaadc8f00f0baba210997d5d2fe7cfeeceb841885b6adad0c9f607e35eddcc479eb487bd3c1e28ac',  # noqa
     # OME TIFF with SubIFDs
     'sample.subifd.ome.tif': 'sha512:35ec252c94b1ad0b9d5bd42c89c1d15c83065d6734100d6f596237ff36e8d4495bcfed2c9ea24ab0b4a35aef59871da429dbd48faf0232219dc4391215ba59ce',  # noqa
+    # Tiff with secondary image, EXIF, and GPS IFDs
+    'd043-200.tif': 'sha512:c0195fc428172223206ffc5fda85f42b62d7b5526c3b097d9c57970030e3419c846834a8e82d1fda037310ff63a8698926e3ea1b65632b36f32cd8c3b15921d0',  # noqa
 }
 
 

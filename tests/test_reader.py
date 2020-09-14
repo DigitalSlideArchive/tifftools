@@ -12,6 +12,7 @@ from .datastore import datastore
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 3),
+    ('d043-200.tif', 2),
 ])
 def test_read_tiff(test_path, num_ifds):
     path = datastore.fetch(test_path)
@@ -24,6 +25,7 @@ def test_read_tiff(test_path, num_ifds):
     'hamamatsu.ndpi',
     'philips.ptif',
     'sample.subifd.ome.tif',
+    'd043-200.tif',
 ])
 def test_split_and_merge(test_path, tmp_path):
     path = datastore.fetch(test_path)
@@ -32,7 +34,7 @@ def test_split_and_merge(test_path, tmp_path):
     tifftools.tiff_split(path, tmp_path / 'test')
     components = sorted([tmp_path / p for p in os.listdir(tmp_path) if p.startswith('test')])
     destpath2 = tmp_path / ('merged' + os.path.splitext(test_path)[1])
-    tifftools.tiff_concat(destpath2, components)
+    tifftools.tiff_merge(destpath2, components)
     chunksize = 1024 ** 2
     with open(destpath1, 'rb') as f1, open(destpath2, 'rb') as f2:
         while True:
@@ -46,7 +48,7 @@ def test_split_and_merge(test_path, tmp_path):
 def test_split_and_merge_by_ifd(tmp_path):
     path = datastore.fetch('sample.subifd.ome.tif')
     destpath1 = tmp_path / 'initial.tif'
-    tifftools.tiff_concat(destpath1, [path])
+    tifftools.tiff_merge(destpath1, [path])
     tifftools.tiff_split(str(path) + ',0', tmp_path / 'test1')
     tifftools.tiff_split(str(path) + ',1', tmp_path / 'test2')
     tifftools.tiff_split(str(path) + ',2', tmp_path / 'test3')

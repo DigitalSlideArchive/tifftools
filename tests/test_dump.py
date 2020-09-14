@@ -12,6 +12,7 @@ from .datastore import datastore
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 15),
+    ('d043-200.tif', 4),
 ])
 def test_tiff_dump(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)
@@ -25,6 +26,7 @@ def test_tiff_dump(test_path, num_ifds, capsys):
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 15),
+    ('d043-200.tif', 4),
 ])
 def test_tiff_dump_json(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)

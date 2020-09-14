@@ -16,7 +16,7 @@ def tiff_merge(*args, **kwargs):
     """
     Alias for tiff_concat.
     """
-    return tiff_merge(*args, **kwargs)
+    return tiff_concat(*args, **kwargs)
 
 
 def tiff_concat(output, source, overwrite=False, **kwargs):
