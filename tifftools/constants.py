@@ -130,6 +130,10 @@ class TiffConstantSet(object):
         except AttributeError:
             raise KeyError(key)
 
+    def __iter__(self):
+        for k, v in sorted(self._entries.items()):
+            yield v
+
 
 Datatype = TiffConstantSet('TiffDatatype', {
     1: {'pack': 'B', 'name': 'BYTE', 'size': 1, 'desc': 'UINT8 - unsigned byte'},
