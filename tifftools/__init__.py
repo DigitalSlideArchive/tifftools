@@ -44,6 +44,15 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max):
         for val in taginfo['data'][:max * len(datatype.pack)]:
             sys.stdout.write(
                 (' %d' if datatype not in (Datatype.FLOAT, Datatype.DOUBLE) else ' %g') % val)
+            if 'enum' in tag and val in tag.enum:
+                sys.stdout.write(' (%s)' % tag.enum[val])
+            if 'bitfield' in tag and val:
+                first = True
+                for bitfield in tag.bitfield:
+                    if val & bitfield.value:
+                        sys.stdout.write('%s%s' % (' (' if first else ', ', bitfield))
+                        first = False
+                sys.stdout.write(')')
         if len(taginfo['data']) > max * len(datatype.pack):
             sys.stdout.write(' ...')
     elif datatype == Datatype.ASCII:
@@ -193,6 +202,9 @@ use 'sample.tiff,1'."""
         'args': ('--silent', '-s'),
         'kwargs': dict(action='count', default=0, help='Decrease output')
     }]
+    # TODO: support
+    # -8 --bigtiff -4 --classic
+    # -B --bigendian --big-endian --be -L --littleendian --little-endian --le
     mainParser = argparse.ArgumentParser(description=description, epilog=epilog)
     secondaryParser = argparse.ArgumentParser(description=description, add_help=False)
     subparsers = mainParser.add_subparsers(
@@ -242,6 +254,20 @@ use 'sample.tiff,1'."""
     parserInfo.add_argument(
         '--json', action='store_true',
         help='Output as json.')
+
+    # TODO: add set
+    # original:
+    # -s <tagname> [<count>] <value>...
+    # -u <tagname>
+    # -sf <tagname> <source file>
+    # -d <dir>
+    # -sd <offset>      # subdir
+    # ours:
+    # -d <dir>[,[<tag>:]<subifd>[,<dir>...]]   --ifd
+    # -u <tagname>    --unset
+    # -s <tagname> [<datatype>] <value>   --set
+    #    value is comma separated if appropriate
+    # -f <tagname> <path>
 
     for parser in (secondaryParser, parserSplit, parserConcat, parserInfo):
         for argument in argumentsForAllParsers:
