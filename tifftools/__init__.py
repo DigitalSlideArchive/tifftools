@@ -12,6 +12,25 @@ from .tifftools import read_tiff, write_tiff
 logger = logging.getLogger(__name__)
 
 
+def _apply_flags_to_ifd(ifd, bigtiff=None, bigendian=None, **kwargs):
+    """
+    Change the ifd to specify bigtiff and endian options.
+
+    :param ifd: an ifd record to modify or a list of ifds where the first
+        entry is modified.
+    :param bigtiff: if True, make result bigtiff.  If False, make result
+        classic tiff if small enough.  If None, don't change.
+    :param bigendian: if True, make result big-endian.  If False, make result
+        little-endian.  If None, don't change.
+    """
+    if not isinstance(ifd, dict):
+        ifd = ifd[0]
+    if bigtiff is not None:
+        ifd['bigtiff'] = bool(bigtiff)
+    if bigendian is not None:
+        ifd['bigEndian'] = bool(bigendian)
+
+
 def tiff_merge(*args, **kwargs):
     """
     Alias for tiff_concat.
@@ -31,6 +50,7 @@ def tiff_concat(output, source, overwrite=False, **kwargs):
     for path in source:
         nextInfo = read_tiff(path)
         ifds.extend(nextInfo['ifds'])
+    _apply_flags_to_ifd(ifds, **kwargs)
     write_tiff(ifds, output, allowExisting=overwrite)
 
 
@@ -184,6 +204,7 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
             ifd = copy.deepcopy(ifd)
             del ifd['tags'][int(Tag.SubIFD)]
         logger.info('Writing %s', outputPath)
+        _apply_flags_to_ifd(ifd, **kwargs)
         write_tiff(ifd, outputPath, allowExisting=overwrite)
 
 
@@ -197,14 +218,24 @@ to the source path.  For instance, to only use the second IFD of sample.tiff,
 use 'sample.tiff,1'."""
     argumentsForAllParsers = [{
         'args': ('--verbose', '-v'),
-        'kwargs': dict(action='count', default=0, help='Increase output')
+        'kwargs': dict(action='count', default=0, help='Increase output.'),
     }, {
         'args': ('--silent', '-s'),
-        'kwargs': dict(action='count', default=0, help='Decrease output')
+        'kwargs': dict(action='count', default=0, help='Decrease output.'),
+    }, {
+        'args': ('--bigtiff', '-8'),
+        'kwargs': dict(action='store_true', help='Output as bigtiff.'),
+    }, {
+        'args': ('--classic', '-4'),
+        'kwargs': dict(
+            dest='bigtiff', action='store_false', help='Output as classic tiff if small enough.'),
+    }, {
+        'args': ('--bigendian', '-B', '--big-endian', '--be'),
+        'kwargs': dict(action='store_true', help='Output as big-endian.'),
+    }, {
+        'args': ('--littleendian', '-L', '--little-endian', '--le'),
+        'kwargs': dict(dest='bigendian', action='store_false', help='Output as little-endian.'),
     }]
-    # TODO: support
-    # -8 --bigtiff -4 --classic
-    # -B --bigendian --big-endian --be -L --littleendian --little-endian --le
     mainParser = argparse.ArgumentParser(description=description, epilog=epilog)
     secondaryParser = argparse.ArgumentParser(description=description, add_help=False)
     subparsers = mainParser.add_subparsers(
