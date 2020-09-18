@@ -7,7 +7,7 @@ from .tifftools import read_tiff, write_tiff
 logger = logging.getLogger(__name__)
 
 # See http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library
-logging.getLogger('tifftools').addHandler(logging.NullHandler())
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 __all__ = (
     'Datatype', 'TiffDatatype',

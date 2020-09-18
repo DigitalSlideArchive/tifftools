@@ -16,6 +16,12 @@ from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
 logger = logging.getLogger(__name__)
 
 
+class ThrowOnLevelHandler(logging.NullHandler):
+    def handle(self, record):
+        if record.levelno >= self.level:
+            raise Exception(record.getMessage())
+
+
 def _apply_flags_to_ifd(ifd, bigtiff=None, bigendian=None, **kwargs):
     """
     Change the ifd to specify bigtiff and endian options.
@@ -466,6 +472,10 @@ use 'sample.tiff,1'."""
     }, {
         'args': ('--littleendian', '-L', '--little-endian', '--le'),
         'kwargs': dict(dest='bigendian', action='store_false', help='Output as little-endian.'),
+    }, {
+        'args': ('--stop-on-warning', '-X'),
+        'kwargs': dict(
+            dest='warningIsError', action='store_true', help='Treat warnings as errors.'),
     }]
     mainParser = argparse.ArgumentParser(description=description, epilog=epilog)
     secondaryParser = argparse.ArgumentParser(description=description, add_help=False)
@@ -568,8 +578,14 @@ use 'sample.tiff,1'."""
     logging.basicConfig(
         stream=sys.stderr, level=max(1, logging.WARNING - 10 * (args.verbose - args.silent)))
     logger.debug('Parsed arguments: %r', args)
+    logging.getLogger('tifftools').addHandler(
+        ThrowOnLevelHandler(level=logging.WARNING if args.warningIsError else logging.ERROR))
     if args.command:
-        func = globals().get('tiff_' + args.command)
-        func(**vars(args))
+        try:
+            func = globals().get('tiff_' + args.command)
+            func(**vars(args))
+        except Exception as exc:
+            sys.stderr.write(str(exc).strip() + '\n')
+            return 1
     else:
         mainParser.print_help(sys.stdout)
