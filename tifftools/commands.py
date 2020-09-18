@@ -363,7 +363,8 @@ def _tagspec_to_ifd(tagspec, info, value=None):
     return tag, datatype, ifd, data
 
 
-def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None, **kwargs):
+def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
+              overwrite=False, **kwargs):
     """
     Set or unset tags in a tiff file.
 
@@ -379,6 +380,8 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None, **kwa
     :param setfrom: a list of tuples of the form (tag, tifffile), where tag is
         of the form <tag name or number>[,<ifd-#>[,...]].  The value will have
         the same datatype as the tifffile it is read from.
+    :param overwrite: if False, throw an error if any of the ouput paths
+        already exist.
     """
     info = read_tiff(source)
     if unset is not None:
@@ -405,7 +408,7 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None, **kwa
                 logger.warning('Tag %s is not in %s', tagspec, tiffpath)
             else:
                 ifd['tags'][int(tag)] = setinfo['ifds'][0]['tags'][int(tag)]
-    write_tiff(info, output)
+    write_tiff(info, output, allowExisting=overwrite)
 
 
 def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
@@ -442,7 +445,7 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
                 fdest.truncate(0)
                 shutil.copyfileobj(fsrc, fdest)
     else:
-        _tiff_set(source, output, setlist, unset, setfrom, **kwargs)
+        _tiff_set(source, output, setlist, unset, setfrom, overwrite=overwrite, **kwargs)
 
 
 def main(args=None):

@@ -59,9 +59,6 @@ def read_tiff(path):
             limitIFDs = parts[1:]
             path = parts[0]
             break
-    # if not os.path.exists(path):
-    #     logger.error('No such file: %s', path)
-    #     return
     info = {
         'path': path,
         'size': os.path.getsize(path),
