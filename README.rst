@@ -10,8 +10,8 @@ Developed by Kitware, Inc. with funding from The National Cancer Institute.
     :target: https://circleci.com/gh/DigitalSlideArchive/tifftools
     :alt: Build Status
 
-.. |codecov-io| image:: https://codecov.io/github/DigitalSlideArchive/tifftools/coverage.svg?branch=master
-   :target: https://codecov.io/github/DigitalSlideArchive/tifftools?branch=master
+.. |codecov-io| image:: https://codecov.io/gh/DigitalSlideArchive/tifftools/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/DigitalSlideArchive/tifftools
    :alt: codecov.io
 
 .. |license-badge| image:: https://img.shields.io/badge/license-Apache%202-blue.svg

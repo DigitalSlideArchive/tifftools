@@ -59,6 +59,9 @@ def read_tiff(path):
             limitIFDs = parts[1:]
             path = parts[0]
             break
+    # if not os.path.exists(path):
+    #     logger.error('No such file: %s', path)
+    #     return
     info = {
         'path': path,
         'size': os.path.getsize(path),
@@ -162,7 +165,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
             'datapos': tiff.tell() - datalen,
         }
         if datatype not in Datatype:
-            logger.warn(
+            logger.warning(
                 'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
             continue
         if count * Datatype[taginfo['type']].size > datalen:
@@ -405,11 +408,11 @@ def write_tag_data(dest, src, offsets, lengths):
     offsetList = sorted([(offset, idx) for idx, offset in enumerate(offsets)])
     for offset, idx in offsetList:
         if offset:
-            destOffsets[idx] = dest.tell()
             length = lengths[idx]
             if not check_offset(src, offset, length):
                 continue
             src.seek(offset)
+            destOffsets[idx] = dest.tell()
             while length:
                 data = src.read(min(length, COPY_CHUNKSIZE))
                 dest.write(data)
