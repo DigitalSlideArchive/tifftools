@@ -9,10 +9,7 @@ from .constants import Datatype, Tag, TiffTag
 logger = logging.getLogger(__name__)
 
 
-# Maybe create classes: IFDEntry, IFD, TiffFile.  These should probably all
-# subclass dict
-
-# IFDEntry contains type, count, datapos, [offset], data, (key is tag number),
+# IFD tags contain type, count, datapos, [offset], data, (key is tag number),
 #   ifds
 # IFD contains tags, path, tagcount, bigEndian, bigtiff, offset
 # info (tifffile) contains endianPack, bigtiff, bigEndian, header (4 bytes),
@@ -86,7 +83,7 @@ def read_tiff(path):
             nextifd = read_ifd(tiff, info, nextifd, info['ifds'])
     logger.debug('read_tiff: %s', info)
     if limitIFDs:
-        info = read_tiff_limit_ifds(info, limitIFDs)
+        info, _ = read_tiff_limit_ifds(info, limitIFDs)
     return info
 
 
@@ -99,9 +96,10 @@ def read_tiff_limit_ifds(info, limitRecords, tagSet=Tag):
     :param limitRecords: a list of limit records.
     :param tagSet: the TiffConstantSet class to use for tags.
     :returns: tiff file information dictionary with reduced IFDs.
+    :returns: tagSet: the tag set used in the last IFD.
     """
     if not limitRecords or not len(limitRecords):
-        return info
+        return info, tagSet
     ifd = info['ifds'][int(limitRecords[0])]
     if len(limitRecords) > 1:
         tagName, subIFDNum = 'SubIFD', limitRecords[1]
@@ -109,19 +107,19 @@ def read_tiff_limit_ifds(info, limitRecords, tagSet=Tag):
             tagName, subIFDNum = limitRecords[1].split(':', 1)
         try:
             tag = tagSet[tagName]
-            nextTagSet = tag.get('tagset')
+            tagSet = tag.get('tagset')
         except Exception:
             tag = int(tagName)
-            nextTagSet = None
+            tagSet = None
         ifds = ifd['tags'][int(tag)]['ifds'][int(subIFDNum)]
     else:
         ifds = [ifd]
     info = info.copy()
     info['ifds'] = ifds
     if len(limitRecords) > 2:
-        info = read_tiff_limit_ifds(info, limitRecords[2:], nextTagSet)
+        info, tagSet = read_tiff_limit_ifds(info, limitRecords[2:], tagSet)
     info['ifdReduction'] = limitRecords
-    return info
+    return info, tagSet
 
 
 def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
