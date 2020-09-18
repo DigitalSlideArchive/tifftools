@@ -63,11 +63,3 @@ def test_split_and_merge_by_ifd(tmp_path):
             assert data1 == data2
             if not len(data1):
                 break
-
-
-def test_split_subifd(tmp_path):
-    path = datastore.fetch('sample.subifd.ome.tif')
-    tifftools.tiff_split(str(path) + ',1,SubIFD:2', tmp_path / 'test')
-    info = tifftools.read_tiff(tmp_path / 'testaaa.tif')
-    assert len(info['ifds']) == 1
-    assert int(tifftools.Tag.SubIFD) not in info['ifds'][0]['tags']

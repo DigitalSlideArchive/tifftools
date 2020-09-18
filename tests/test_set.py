@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 import tifftools
@@ -45,3 +47,16 @@ def test_tiff_set_setfrom(tmp_path):
     tifftools.tiff_set(str(path) + ',1', dest, setfrom=[('Model', path)])
     info = tifftools.read_tiff(str(dest))
     assert info['ifds'][0]['tags'][int(tifftools.Tag.Model)]['data'] == 'NIKON D500'
+
+
+def test_tiff_set_self(tmp_path):
+    path = datastore.fetch('d043-200.tif')
+    dest = tmp_path / 'results.tif'
+    shutil.copy(path, dest)
+    with pytest.raises(Exception):
+        tifftools.tiff_set(dest, setlist=[('ImageDescription', 'Dog digging')])
+    info = tifftools.read_tiff(str(dest))
+    assert int(tifftools.Tag.ImageDescription) not in info['ifds'][0]['tags']
+    tifftools.tiff_set(dest, overwrite=True, setlist=[('ImageDescription', 'Dog digging')])
+    info = tifftools.read_tiff(str(dest))
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.ImageDescription)]['data'] == 'Dog digging'

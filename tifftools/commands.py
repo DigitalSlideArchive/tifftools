@@ -58,39 +58,61 @@ def tiff_concat(output, source, overwrite=False, **kwargs):
     write_tiff(ifds, output, allowExisting=overwrite)
 
 
-def _tiff_dump_tag(tag, taginfo, linePrefix, max):
+def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
+    """
+    Print a tag to a string.
+
+    :param tag: the TiffTag class of the tag that should be printed.
+    :param taginfo: a dictionary with 'data' and 'type' with tag information.
+    :param linePrefix: a string to put in front of the output.  This is usually
+        whitespace.
+    :param dest: the stream to print results to.
+    """
+    dest = sys.stdout if dest is None else dest
     datatype = Datatype[taginfo['type']]
-    sys.stdout.write('%s  %s %s:' % (linePrefix, tag, datatype.name))
+    dest.write('%s  %s %s:' % (linePrefix, tag, datatype.name))
     if datatype.pack:
         count = len(taginfo['data']) // len(datatype.pack)
         if count != 1:
-            sys.stdout.write(' <%d>' % count)
+            dest.write(' <%d>' % count)
         for validx, val in enumerate(taginfo['data'][:max * len(datatype.pack)]):
-            sys.stdout.write(
+            dest.write(
                 (' %d' if datatype not in (Datatype.FLOAT, Datatype.DOUBLE) else ' %g') % val)
             if datatype in (Datatype.RATIONAL, Datatype.SRATIONAL) and (validx % 2) and val:
-                sys.stdout.write(' (%g)' % (taginfo['data'][validx - 1] / val))
+                dest.write(' (%g)' % (taginfo['data'][validx - 1] / val))
             if 'enum' in tag and val in tag.enum:
-                sys.stdout.write(' (%s)' % tag.enum[val])
+                dest.write(' (%s)' % tag.enum[val])
             if 'bitfield' in tag and val:
                 first = True
                 for bitfield in tag.bitfield:
                     if val & bitfield.value:
-                        sys.stdout.write('%s%s' % (' (' if first else ', ', bitfield))
+                        dest.write('%s%s' % (' (' if first else ', ', bitfield))
                         first = False
-                sys.stdout.write(')')
+                dest.write(')')
         if len(taginfo['data']) > max * len(datatype.pack):
-            sys.stdout.write(' ...')
+            dest.write(' ...')
     elif datatype == Datatype.ASCII:
-        sys.stdout.write(' %s' % taginfo['data'])
+        dest.write(' %s' % taginfo['data'])
     else:
-        sys.stdout.write(' <%d> %r' % (len(taginfo['data']), taginfo['data'][:max]))
-    sys.stdout.write('\n')
+        dest.write(' <%d> %r' % (len(taginfo['data']), taginfo['data'][:max]))
+    dest.write('\n')
 
 
-def _tiff_dump_ifds(ifds, max, titlePrefix='', linePrefix='', tagSet=Tag):
+def _tiff_dump_ifds(ifds, max, dest=None, titlePrefix='', linePrefix='', tagSet=Tag):
+    """
+    Print a list of ifds to a stream.
+
+    :param ifds: the list of ifds.
+    :param max: the maximum number of data values to print.
+    :param dest: the stream to print results to.
+    :param titlePrefix: a string to add in front of each directory.
+    :param linePrefix: a string to put in front of each line.  This is usually
+        whitespace.
+    :param tagSet: the TiffTagSet class of tags to use for these IFDs.
+    """
+    dest = sys.stdout if dest is None else dest
     for idx, ifd in enumerate(ifds):
-        sys.stdout.write('%s%sDirectory %d: offset %d (0x%x)\n' % (
+        dest.write('%s%sDirectory %d: offset %d (0x%x)\n' % (
             linePrefix, titlePrefix, idx, ifd['offset'], ifd['offset']))
         subifdList = []
         for tag, taginfo in sorted(ifd['tags'].items()):
@@ -99,7 +121,7 @@ def _tiff_dump_ifds(ifds, max, titlePrefix='', linePrefix='', tagSet=Tag):
             except Exception:
                 tag = TiffTag(int(tag), {'name': str(tag), 'datatype': Datatype[taginfo['type']]})
             if not tag.isIFD() and taginfo['type'] not in (Datatype.IFD, Datatype.IFD8):
-                _tiff_dump_tag(tag, taginfo, linePrefix, max)
+                _tiff_dump_tag(tag, taginfo, linePrefix, max, dest)
             else:
                 subifdList.append((tag, taginfo))
         for tag, taginfo in subifdList:
@@ -109,6 +131,7 @@ def _tiff_dump_ifds(ifds, max, titlePrefix='', linePrefix='', tagSet=Tag):
                 _tiff_dump_ifds(
                     subifds,
                     max,
+                    dest,
                     subTitlePrefix + '%d, ' % subidx,
                     subLinePrefix, getattr(tag, 'tagset', None))
 
@@ -127,22 +150,24 @@ class ExtendedJsonEncoder(json.JSONEncoder):
         return str(obj)
 
 
-def tiff_dump(source, max=20, *args, **kwargs):
+def tiff_dump(source, max=20, dest=None, *args, **kwargs):
     """
     Print the tiff information.
 
     :param source: the source path.
     :param max: the maximum number of items to display for lists.
+    :param dest: an open stream to write to.
     """
+    dest = sys.stdout if dest is None else dest
     info = read_tiff(source)
     if kwargs.get('json'):
-        json.dump(info, sys.stdout, indent=2, cls=ExtendedJsonEncoder)
+        json.dump(info, dest, indent=2, cls=ExtendedJsonEncoder)
         return
-    sys.stdout.write('Header: 0x%02x%02x <%s-endian> <%sTIFF>\n' % (
+    dest.write('Header: 0x%02x%02x <%s-endian> <%sTIFF>\n' % (
         info['header'][0], info['header'][1],
         'big' if info['bigEndian'] else 'little',
         'Big' if info['bigtiff'] else 'Classic'))
-    _tiff_dump_ifds(info['ifds'], max)
+    _tiff_dump_ifds(info['ifds'], max, dest)
 
 
 def _iterate_ifds(ifds, subifds=False):
