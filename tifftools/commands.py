@@ -134,12 +134,10 @@ def _tiff_dump_ifds(ifds, max, dest=None, titlePrefix='', linePrefix='', tagSet=
             subLinePrefix = linePrefix + '  '
             subTitlePrefix = '%s:' % (tag)
             for subidx, subifds in enumerate(taginfo['ifds']):
+                dest.write(subLinePrefix + subTitlePrefix + '%d\n' % subidx)
                 _tiff_dump_ifds(
-                    subifds,
-                    max,
-                    dest,
-                    subTitlePrefix + '%d, ' % subidx,
-                    subLinePrefix, getattr(tag, 'tagset', None))
+                    subifds, max, dest, '', subLinePrefix + '  ',
+                    getattr(tag, 'tagset', None))
 
 
 def tiff_info(*args, **kwargs):
@@ -151,9 +149,7 @@ def tiff_info(*args, **kwargs):
 
 class ExtendedJsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, bytes):
-            return 'bytes:' + repr(obj)
-        return str(obj)
+        return '%s:%s' % (type(obj).__name__, repr(obj))
 
 
 def tiff_dump(source, max=20, dest=None, *args, **kwargs):
@@ -408,6 +404,7 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
                 logger.warning('Tag %s is not in %s', tagspec, tiffpath)
             else:
                 ifd['tags'][int(tag)] = setinfo['ifds'][0]['tags'][int(tag)]
+    _apply_flags_to_ifd(info, **kwargs)
     write_tiff(info, output, allowExisting=overwrite)
 
 
@@ -437,7 +434,7 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
         output = source
     if os.path.exists(output) and not overwrite:
         raise Exception('File already exists: %s' % output)
-    if os.path.realpath(source) == os.path.realpath(output):
+    if os.path.realpath(source) == os.path.realpath(output) and source != '-':
         with tempfile.TemporaryDirectory('tifftools') as tmpdir:
             output = os.path.join(tmpdir, 'output.tiff')
             _tiff_set(source, output, setlist, unset, setfrom, **kwargs)
@@ -588,6 +585,8 @@ use 'sample.tiff,1'."""
             func = globals().get('tiff_' + args.command)
             func(**vars(args))
         except Exception as exc:
+            if args.verbose - args.silent >= 1:
+                raise
             sys.stderr.write(str(exc).strip() + '\n')
             return 1
     else:

@@ -5,33 +5,30 @@ import os
 import struct
 
 from .constants import Datatype, Tag, TiffTag
+from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 
 logger = logging.getLogger(__name__)
 
 
 # IFD tags contain type, count, datapos, [offset], data, (key is tag number),
 #   ifds
-# IFD contains tags, path, tagcount, bigEndian, bigtiff, offset
+# IFD contains tags, path_or_fobj, size, tagcount, bigEndian, bigtiff, offset
 # info (tifffile) contains endianPack, bigtiff, bigEndian, header (4 bytes),
-#   firstifd, ifds, path
+#   firstifd, ifds, path_or_fobj, size
 
 
-# TODO:
-#  Possibly raise exceptions on any warning
-
-
-def check_offset(fptr, offset, length):
+def check_offset(filelen, offset, length):
     """
     Check if a specific number of bytes can be read from a file at a given
     offset.
 
-    :param fptr: an open file handle.
+    :param filelen: the length of the file.
     :param offset: an absolute offset in the file.
     :param length: the number of bytes to read.
     :return: True if the offset and length are possible, false if not.
     """
-    filelen = os.fstat(fptr.fileno()).st_size
-    allowed = offset >= 0 and length >= 0 and offset + length <= filelen
+    # The minimum offset is the length of the tiff header
+    allowed = offset >= 8 and length >= 0 and offset + length <= filelen
     if not allowed:
         logger.warning(
             'Cannot read %d (0x%x) bytes from desired offset %d (0x%x).',
@@ -53,18 +50,21 @@ def read_tiff(path):
     :returns: a dictionary of information on the tiff file.
     """
     limitIFDs = None
-    for splits in range(1, len(str(path).split(','))):
-        parts = str(path).rsplit(',', splits)
-        if os.path.exists(parts[0]):
-            limitIFDs = parts[1:]
-            path = parts[0]
-            break
     info = {
-        'path': path,
-        'size': os.path.getsize(path),
         'ifds': [],
     }
-    with open(path, 'rb') as tiff:
+    if not is_filelike_object(path):
+        for splits in range(1, len(str(path).split(','))):
+            parts = str(path).rsplit(',', splits)
+            if os.path.exists(parts[0]):
+                limitIFDs = parts[1:]
+                path = parts[0]
+                break
+    with OpenPathOrFobj(path, 'rb') as tiff:
+        info['path_or_fobj'] = tiff if is_filelike_object(path) else path
+        tiff.seek(0, os.SEEK_END)
+        info['size'] = tiff.tell()
+        tiff.seek(0)
         header = tiff.read(4)
         info['header'] = header
         if header not in (b'II\x2a\x00', b'MM\x00\x2a', b'II\x2b\x00', b'MM\x00\x2b'):
@@ -134,14 +134,15 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
     :param tagSet: the TiffConstantSet class to use for tags.
     """
     bom = info['endianPack']
-    if not check_offset(tiff, ifdOffset, 16 if info['bigtiff'] else 6):
+    if not check_offset(info['size'], ifdOffset, 16 if info['bigtiff'] else 6):
         return
     tiff.seek(ifdOffset)
     # Store the main path here.  This facilitates merging files.
     ifd = {
         'offset': ifdOffset,
         'tags': {},
-        'path': info['path'],
+        'path_or_fobj': info['path_or_fobj'],
+        'size': info['size'],
         'bigEndian': info['bigEndian'],
         'bigtiff': info['bigtiff'],
     }
@@ -168,8 +169,8 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
         if count * Datatype[taginfo['type']].size > datalen:
             taginfo['offset'] = data
         if tag in ifd['tags']:
-            logger.warning('Duplicate tag %d in %s: data at %d and %d' % (
-                tag, ifd['path'], ifd['tags'][tag]['datapos'], taginfo['datapos']))
+            logger.warning('Duplicate tag %d: data at %d and %d' % (
+                tag, ifd['tags'][tag]['datapos'], taginfo['datapos']))
         ifd['tags'][tag] = taginfo
     if info['bigtiff']:
         nextifd = struct.unpack(bom + 'Q', tiff.read(8))[0]
@@ -198,7 +199,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
             tag = tag
         typesize = Datatype[taginfo['type']].size
         pos = taginfo.get('offset', taginfo['datapos'])
-        if not check_offset(tiff, pos, taginfo['count'] * typesize):
+        if not check_offset(info['size'], pos, taginfo['count'] * typesize):
             return
         tiff.seek(pos)
         rawdata = tiff.read(taginfo['count'] * typesize)
@@ -213,7 +214,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
         if ((hasattr(tag, 'isIFD') and tag.isIFD()) or
                 Datatype[taginfo['type']] in (Datatype.IFD, Datatype.IFD8)):
             taginfo['ifds'] = []
-            if not check_offset(tiff, pos, taginfo['count'] * typesize):
+            if not check_offset(info['size'], pos, taginfo['count'] * typesize):
                 return
             tiff.seek(pos)
             subifdOffsets = struct.unpack(
@@ -256,7 +257,7 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
     if not allowExisting and os.path.exists(path):
         raise Exception('File already exists')
     rewriteBigtiff = False
-    with open(path, 'wb') as dest:
+    with OpenPathOrFobj(path, 'wb') as dest:
         bom = '>' if bigEndian else '<'
         header = b'II' if not bigEndian else b'MM'
         if bigtiff:
@@ -295,27 +296,30 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     dest.seek(0, os.SEEK_END)
     ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
     subifdPtrs = {}
-    with open(ifd['path'], 'rb') as src:
+    with OpenPathOrFobj(ifd['path_or_fobj'], 'rb') as src:
         for tag, taginfo in sorted(ifd['tags'].items()):
             try:
                 tag = tagSet[tag]
             except Exception:
                 tag = TiffTag(int(tag), {'name': str(tag), 'datatype': Datatype[taginfo['type']]})
-            data = taginfo['data']
             if tag.isIFD() or taginfo['type'] in (Datatype.IFD, Datatype.IFD8):
                 if not len(taginfo.get('ifds', [])):
                     continue
                 data = [0] * len(taginfo['ifds'])
                 taginfo = taginfo.copy()
                 taginfo['type'] = Datatype.IFD8 if bigtiff else Datatype.IFD
+            else:
+                data = taginfo['data']
             count = len(data)
             if tag.isOffsetData():
                 if isinstance(tag.bytecounts, str):
                     data = write_tag_data(
-                        dest, src, data, ifd['tags'][int(tagSet[tag.bytecounts])]['data'])
+                        dest, src, data,
+                        ifd['tags'][int(tagSet[tag.bytecounts])]['data'],
+                        ifd['size'])
                 else:
                     data = write_tag_data(
-                        dest, src, data, [tag.bytecounts] * count)
+                        dest, src, data, [tag.bytecounts] * count, ifd['size'])
                 taginfo = taginfo.copy()
                 taginfo['type'] = Datatype.LONG8 if bigtiff else Datatype.LONG
             if Datatype[taginfo['type']].pack:
@@ -384,7 +388,7 @@ def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag):
             subifdPtr += tagdatalen
 
 
-def write_tag_data(dest, src, offsets, lengths):
+def write_tag_data(dest, src, offsets, lengths, srclen):
     """
     Copy data from a source tiff to a destination tiff, return a list of
     offsets where data was written.
@@ -393,6 +397,7 @@ def write_tag_data(dest, src, offsets, lengths):
     :param src: the source file.
     :param offsets: an array of offsets where data will be copied from.
     :param lengths: an array of lengths to copy from each offset.
+    :param srclen: the length of the source file.
     :return: the offsets in the destination file corresponding to the data
         copied.
     """
@@ -406,7 +411,7 @@ def write_tag_data(dest, src, offsets, lengths):
     for offset, idx in offsetList:
         if offset:
             length = lengths[idx]
-            if not check_offset(src, offset, length):
+            if not check_offset(srclen, offset, length):
                 continue
             src.seek(offset)
             destOffsets[idx] = dest.tell()
