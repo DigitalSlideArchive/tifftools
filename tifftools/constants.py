@@ -109,15 +109,10 @@ class TiffConstantSet(object):
         return hasattr(self, str(other))
 
     def __getattr__(self, key):
-        if isinstance(key, TiffConstant):
-            key = int(key)
-        if isinstance(key, int):
-            key = str(key)
-        else:
-            try:
-                key = str(int(key, 0))
-            except (ValueError, TypeError):
-                pass
+        try:
+            key = str(int(key, 0))
+        except (ValueError, TypeError):
+            pass
         if key.lower() in self.__dict__:
             return self.__dict__[key.lower()]
         raise AttributeError("'%s' object has no attribute '%s'" % (type(self).__name__, key))
