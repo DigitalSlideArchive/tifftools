@@ -109,15 +109,17 @@ def read_tiff_limit_ifds(info, limitRecords, tagSet=Tag):
             tag = tagSet[tagName]
             tagSet = tag.get('tagset')
         except Exception:
-            tag = int(tagName)
             tagSet = None
+            try:
+                tag = int(tagName)
+            except ValueError:
+                tag = int(tagName, 0)
         ifds = ifd['tags'][int(tag)]['ifds'][int(subIFDNum)]
     else:
         ifds = [ifd]
     info = info.copy()
     info['ifds'] = ifds
-    if len(limitRecords) > 2:
-        info, tagSet = read_tiff_limit_ifds(info, limitRecords[2:], tagSet)
+    info, tagSet = read_tiff_limit_ifds(info, limitRecords[2:], tagSet)
     info['ifdReduction'] = limitRecords
     return info, tagSet
 
