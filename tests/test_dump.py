@@ -14,6 +14,7 @@ from .datastore import datastore
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 15),
     ('d043-200.tif', 4),
+    ('subsubifds.tif', 9),
 ])
 def test_tiff_dump(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)
@@ -28,6 +29,7 @@ def test_tiff_dump(test_path, num_ifds, capsys):
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 15),
     ('d043-200.tif', 4),
+    ('subsubifds.tif', 9),
 ])
 def test_tiff_dump_json(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)
@@ -43,6 +45,7 @@ def test_tiff_dump_json(test_path, num_ifds, capsys):
     ('philips.ptif', 11),
     ('sample.subifd.ome.tif', 15),
     ('d043-200.tif', 4),
+    ('subsubifds.tif', 9),
 ])
 def test_tiff_dump_to_stream(test_path, num_ifds):
     path = datastore.fetch(test_path)
