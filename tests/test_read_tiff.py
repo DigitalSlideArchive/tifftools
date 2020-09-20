@@ -1,3 +1,5 @@
+import io
+import logging
 import os
 
 import pytest
@@ -5,6 +7,8 @@ import pytest
 import tifftools
 
 from .datastore import datastore
+
+LOGGER = logging.getLogger('tifftools')
 
 
 @pytest.mark.parametrize('test_path,num_ifds', [
@@ -31,3 +35,21 @@ def test_read_tiff_bad_file(test_path, msg):
     with pytest.raises(Exception) as exc:
         tifftools.read_tiff(path)
     assert msg in str(exc.value)
+
+
+def test_read_tiff_bad_stream():
+    stream = io.BytesIO()
+    stream.write(b'Not a tiff')
+    with pytest.raises(Exception) as exc:
+        tifftools.read_tiff(stream)
+    assert 'Not a known tiff header' in str(exc.value)
+
+
+@pytest.mark.parametrize('test_path,msg', [
+    ('bad_tag_offset.tif', 'from desired offset'),
+])
+def test_read_tiff_warning_file(test_path, msg, caplog):
+    path = os.path.join(os.path.dirname(__file__), 'data', test_path)
+    with caplog.at_level(logging.WARNING):
+        tifftools.read_tiff(path)
+    assert msg in caplog.text

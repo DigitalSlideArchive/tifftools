@@ -56,3 +56,24 @@ def test_tiff_dump_to_stream(test_path, num_ifds):
     destinfo = io.StringIO()
     tifftools.tiff_info(path, dest=destinfo)
     assert dest.getvalue() == destinfo.getvalue()
+
+
+@pytest.mark.parametrize('suffix,num_ifds', [
+    ('', 9),
+    (',0', 1),
+    (',1', 7),
+    (',1,0', 1),
+    (',1,1', 4),
+    (',1,SubIFD:1', 4),
+    (',1,330:1', 4),
+    (',1,0x14a:1', 4),
+    (',1,SubIFD:1,0', 1),
+    (',1,SubIFD:1,1', 3),
+    (',1,SubIFD:1,1,SubIFD:0', 2),
+    (',1,SubIFD:1,1,SubIFD:0,1', 1),
+])
+def test_tiff_dump_specific_ifd(suffix, num_ifds, capsys):
+    path = datastore.fetch('subsubifds.tif')
+    tifftools.tiff_dump(path + suffix)
+    captured = capsys.readouterr()
+    assert len(captured.out.split('Directory ')) == num_ifds + 1

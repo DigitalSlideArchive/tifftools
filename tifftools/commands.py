@@ -104,22 +104,22 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
     dest.write('\n')
 
 
-def _tiff_dump_ifds(ifds, max, dest=None, titlePrefix='', linePrefix='', tagSet=Tag):
+def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='', tagSet=Tag):
     """
     Print a list of ifds to a stream.
 
     :param ifds: the list of ifds.
     :param max: the maximum number of data values to print.
     :param dest: the stream to print results to.
-    :param titlePrefix: a string to add in front of each directory.
+    :param dirPrefix: a string to add in front of each directory.
     :param linePrefix: a string to put in front of each line.  This is usually
         whitespace.
     :param tagSet: the TiffTagSet class of tags to use for these IFDs.
     """
     dest = sys.stdout if dest is None else dest
     for idx, ifd in enumerate(ifds):
-        dest.write('%s%sDirectory %d: offset %d (0x%x)\n' % (
-            linePrefix, titlePrefix, idx, ifd['offset'], ifd['offset']))
+        dest.write('%sDirectory %s%d: offset %d (0x%x)\n' % (
+            linePrefix, dirPrefix, idx, ifd['offset'], ifd['offset']))
         subifdList = []
         for tag, taginfo in sorted(ifd['tags'].items()):
             try:
@@ -132,12 +132,12 @@ def _tiff_dump_ifds(ifds, max, dest=None, titlePrefix='', linePrefix='', tagSet=
                 subifdList.append((tag, taginfo))
         for tag, taginfo in subifdList:
             subLinePrefix = linePrefix + '  '
-            subTitlePrefix = '%s:' % (tag)
+            subDirPrefix = '%s%d,%s:' % (dirPrefix, idx, tag.name)
             for subidx, subifds in enumerate(taginfo['ifds']):
-                dest.write(subLinePrefix + subTitlePrefix + '%d\n' % subidx)
+                dest.write('%s%s:%d\n' % (subLinePrefix, tag, subidx))
                 _tiff_dump_ifds(
-                    subifds, max, dest, '', subLinePrefix + '  ',
-                    getattr(tag, 'tagset', None))
+                    subifds, max, dest, '%s%d,' % (subDirPrefix, subidx),
+                    subLinePrefix + '  ', getattr(tag, 'tagset', None))
 
 
 def tiff_info(*args, **kwargs):
@@ -303,6 +303,31 @@ def _value_to_types(value):
     return results
 
 
+def _tagspec_to_tag(tagspec, datatype, tagSet):
+    """
+    Given the name or number of tag, return a TiffTag.
+
+    :param tagspec: the name or number of a tag.
+    :param datatype: the datatype to assign to the tag if it must be created.
+    :param tagSet: the TiffTagSet class of tags to use.
+    :returns: a TiffTag.
+    """
+    try:
+        return tagSet[tagspec]
+    except Exception:
+        pass
+    try:
+        tagval = int(tagspec)
+    except ValueError:
+        try:
+            tagval = int(tagspec, 0)
+        except ValueError:
+            tagval = -1
+    if tagval < 0 or tagval >= 65536:
+        raise Exception('Unknown tag %s' % tagspec)
+    return TiffTag(tagval, {'name': tagval, 'datatype': datatype})
+
+
 def _tagspec_to_ifd(tagspec, info, value=None):
     """
     Given a tag specification of the form
@@ -334,10 +359,7 @@ def _tagspec_to_ifd(tagspec, info, value=None):
         datatype = Datatype[datatype]
         if value is not None and datatype not in valueTypes:
             raise Exception('Value %r cannot be converted to datatype %s' % (value, datatype))
-    try:
-        tag = tagSet[tagspec]
-    except Exception:
-        tag = TiffTag(int(tagspec), {'name': str(tagspec), 'datatype': datatype})
+    tag = _tagspec_to_tag(tagspec, datatype, tagSet)
     if tag.datatype is not None:
         tagDatatypes = tag.datatype if isinstance(tag.datatype, tuple) else (tag.datatype, )
     if datatype is None and tag.datatype is not None:
@@ -489,7 +511,7 @@ use 'sample.tiff,1'."""
         help='split [--subifds] [--overwrite] source [prefix]',
         description='Split IFDs into separate files.',
         epilog=epilog)
-    parserSplit.add_argument('source', help='Source file to split.')
+    parserSplit.add_argument('source', help='Source file to split, - for stdin.')
     parserSplit.add_argument('prefix', nargs='?', help='Prefix of split files.')
     parserSplit.add_argument(
         '--subifds', action='store_true', help='Split all subifds.  If not '
@@ -506,9 +528,10 @@ use 'sample.tiff,1'."""
         description='Concatenate multiple files into a single TIFF.',
         epilog=epilog)
     parserConcat.add_argument(
-        'output', help='Output file.')
+        'output', help='Output file, - for stdout.')
     parserConcat.add_argument(
-        'source', nargs='+', help='Source files to concatenate.')
+        'source', nargs='+',
+        help='Source files to concatenate, - for one file on stdin.')
     parserConcat.add_argument(
         '--overwrite', '-y', action='store_true',
         help='Allow overwriting an existing output file.')
@@ -535,14 +558,14 @@ use 'sample.tiff,1'."""
         description='Set tags in a TIFF file.',
         epilog=epilog)
     parserSet.add_argument(
-        'source', help='Source file.')
+        'source', help='Source file, - for stdin.')
     parserSet.add_argument(
         '--overwrite', '-y', action='store_true',
         help='Allow overwriting an existing output file.')
     parserSet.add_argument(
         'output', nargs='?',
-        help='Output file.  If no output file is specified, the source file '
-        'is rewritten.')
+        help='Output file, - for stdout.  If no output file is specified, the '
+        'source file is rewritten.')
     parserSet.add_argument(
         '--set', '-s', nargs=2, action='append', dest='setlist',
         metavar=('TAG[:DATATYPE][,<IFD-#>]', 'VALUE'),
