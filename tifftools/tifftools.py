@@ -288,7 +288,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
             tag = get_or_create_tag(
                 tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}
                                 if taginfo.get('datatype') else {}))
-            if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
+            if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                 if not len(taginfo.get('ifds', [])):
                     continue
                 data = [0] * len(taginfo['ifds'])
@@ -320,11 +320,11 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                 data = taginfo['data']
             tagrecord = struct.pack(bom + 'HH' + ptrpack, tag, taginfo['datatype'], count)
             if len(data) <= tagdatalen:
-                if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
+                if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
                 tagrecord += data + b'\x00' * (tagdatalen - len(data))
             else:
-                if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
+                if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
                 tagrecord += struct.pack(bom + ptrpack, dest.tell())
                 dest.write(data)
