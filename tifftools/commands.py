@@ -69,13 +69,13 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
     Print a tag to a string.
 
     :param tag: the TiffTag class of the tag that should be printed.
-    :param taginfo: a dictionary with 'data' and 'type' with tag information.
+    :param taginfo: a dictionary with 'data' and 'datatype' with tag information.
     :param linePrefix: a string to put in front of the output.  This is usually
         whitespace.
     :param dest: the stream to print results to.
     """
     dest = sys.stdout if dest is None else dest
-    datatype = Datatype[taginfo['type']]
+    datatype = Datatype[taginfo['datatype']]
     dest.write('%s  %s %s:' % (linePrefix, tag, datatype.name))
     if datatype.pack:
         count = len(taginfo['data']) // len(datatype.pack)
@@ -122,8 +122,8 @@ def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='', tagSet=Ta
             linePrefix, dirPrefix, idx, ifd['offset'], ifd['offset']))
         subifdList = []
         for tag, taginfo in sorted(ifd['tags'].items()):
-            tag = get_or_create_tag(tag, tagSet, {'datatype': Datatype[taginfo['type']]})
-            if not tag.isIFD() and taginfo['type'] not in (Datatype.IFD, Datatype.IFD8):
+            tag = get_or_create_tag(tag, tagSet, {'datatype': Datatype[taginfo['datatype']]})
+            if not tag.isIFD() and taginfo['datatype'] not in (Datatype.IFD, Datatype.IFD8):
                 _tiff_dump_tag(tag, taginfo, linePrefix, max, dest)
             else:
                 subifdList.append((tag, taginfo))
@@ -386,7 +386,7 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
             if data is not None:
                 ifd['tags'][int(tag)] = {
                     'data': data,
-                    'type': datatype,
+                    'datatype': datatype,
                 }
             else:
                 logger.warning('Could not determine data for tag %s', tagspec)
