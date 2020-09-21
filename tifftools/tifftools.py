@@ -10,8 +10,8 @@ from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 logger = logging.getLogger(__name__)
 
 
-# IFD tags contain type, count, datapos, [offset], data, (key is tag number),
-#   ifds
+# IFD tags contain datatype, count, datapos, [offset], data, [ifds],
+#   (key is tag number)
 # IFD contains tags, path_or_fobj, size, tagcount, bigEndian, bigtiff, offset
 # info (tifffile) contains endianPack, bigtiff, bigEndian, header (4 bytes),
 #   firstifd, ifds, path_or_fobj, size
@@ -153,7 +153,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
             tag, datatype, count, data = struct.unpack(bom + 'HHLL', tiff.read(12))
             datalen = 4
         taginfo = {
-            'type': datatype,
+            'datatype': datatype,
             'count': count,
             'datapos': tiff.tell() - datalen,
         }
@@ -161,7 +161,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
             logger.warning(
                 'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
             continue
-        if count * Datatype[taginfo['type']].size > datalen:
+        if count * Datatype[taginfo['datatype']].size > datalen:
             taginfo['offset'] = data
         if tag in ifd['tags']:
             logger.warning('Duplicate tag %d: data at %d and %d' % (
@@ -189,22 +189,22 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
     bom = info['endianPack']
     for tag, taginfo in ifd['tags'].items():
         tag = get_or_create_tag(tag, tagSet)
-        typesize = Datatype[taginfo['type']].size
+        typesize = Datatype[taginfo['datatype']].size
         pos = taginfo.get('offset', taginfo['datapos'])
         if not check_offset(info['size'], pos, taginfo['count'] * typesize):
             return
         tiff.seek(pos)
         rawdata = tiff.read(taginfo['count'] * typesize)
-        if Datatype[taginfo['type']].pack:
+        if Datatype[taginfo['datatype']].pack:
             taginfo['data'] = list(struct.unpack(
-                bom + Datatype[taginfo['type']].pack * taginfo['count'], rawdata))
-        elif Datatype[taginfo['type']] == Datatype.ASCII:
+                bom + Datatype[taginfo['datatype']].pack * taginfo['count'], rawdata))
+        elif Datatype[taginfo['datatype']] == Datatype.ASCII:
             taginfo['data'] = rawdata.rstrip(b'\x00').decode()
             # TODO: Handle null-separated lists
         else:
             taginfo['data'] = rawdata
         if ((hasattr(tag, 'isIFD') and tag.isIFD()) or
-                Datatype[taginfo['type']] in (Datatype.IFD, Datatype.IFD8)):
+                Datatype[taginfo['datatype']] in (Datatype.IFD, Datatype.IFD8)):
             taginfo['ifds'] = []
             if not check_offset(info['size'], pos, taginfo['count'] * typesize):
                 return
@@ -290,13 +290,13 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     subifdPtrs = {}
     with OpenPathOrFobj(ifd['path_or_fobj'], 'rb') as src:
         for tag, taginfo in sorted(ifd['tags'].items()):
-            tag = get_or_create_tag(tag, tagSet, datatype=Datatype[taginfo['type']])
-            if tag.isIFD() or taginfo['type'] in (Datatype.IFD, Datatype.IFD8):
+            tag = get_or_create_tag(tag, tagSet, datatype=Datatype[taginfo['datatype']])
+            if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
                 if not len(taginfo.get('ifds', [])):
                     continue
                 data = [0] * len(taginfo['ifds'])
                 taginfo = taginfo.copy()
-                taginfo['type'] = Datatype.IFD8 if bigtiff else Datatype.IFD
+                taginfo['datatype'] = Datatype.IFD8 if bigtiff else Datatype.IFD
             else:
                 data = taginfo['data']
             count = len(data)
@@ -310,24 +310,24 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                     data = write_tag_data(
                         dest, src, data, [tag.bytecounts] * count, ifd['size'])
                 taginfo = taginfo.copy()
-                taginfo['type'] = Datatype.LONG8 if bigtiff else Datatype.LONG
-            if Datatype[taginfo['type']].pack:
-                pack = Datatype[taginfo['type']].pack
+                taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
+            if Datatype[taginfo['datatype']].pack:
+                pack = Datatype[taginfo['datatype']].pack
                 count //= len(pack)
                 data = struct.pack(bom + pack * count, *data)
-            elif Datatype[taginfo['type']] == Datatype.ASCII:
+            elif Datatype[taginfo['datatype']] == Datatype.ASCII:
                 # Handle null-seperated lists
                 data = data.encode() + b'\x00'
                 count = len(data)
             else:
                 data = taginfo['data']
-            tagrecord = struct.pack(bom + 'HH' + ptrpack, tag, taginfo['type'], count)
+            tagrecord = struct.pack(bom + 'HH' + ptrpack, tag, taginfo['datatype'], count)
             if len(data) <= tagdatalen:
-                if tag.isIFD() or taginfo['type'] in (Datatype.IFD, Datatype.IFD8):
+                if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
                 tagrecord += data + b'\x00' * (tagdatalen - len(data))
             else:
-                if tag.isIFD() or taginfo['type'] in (Datatype.IFD, Datatype.IFD8):
+                if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
                 tagrecord += struct.pack(bom + ptrpack, dest.tell())
                 dest.write(data)
