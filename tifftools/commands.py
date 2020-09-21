@@ -10,7 +10,7 @@ import struct
 import sys
 import tempfile
 
-from .constants import Datatype, Tag, TiffTag
+from .constants import Datatype, Tag, get_or_create_tag
 from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
 
 logger = logging.getLogger(__name__)
@@ -122,10 +122,7 @@ def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='', tagSet=Ta
             linePrefix, dirPrefix, idx, ifd['offset'], ifd['offset']))
         subifdList = []
         for tag, taginfo in sorted(ifd['tags'].items()):
-            try:
-                tag = tagSet[tag]
-            except Exception:
-                tag = TiffTag(int(tag), {'name': str(tag), 'datatype': Datatype[taginfo['type']]})
+            tag = get_or_create_tag(tag, tagSet, {'datatype': Datatype[taginfo['type']]})
             if not tag.isIFD() and taginfo['type'] not in (Datatype.IFD, Datatype.IFD8):
                 _tiff_dump_tag(tag, taginfo, linePrefix, max, dest)
             else:
@@ -303,31 +300,6 @@ def _value_to_types(value):
     return results
 
 
-def _tagspec_to_tag(tagspec, datatype, tagSet):
-    """
-    Given the name or number of tag, return a TiffTag.
-
-    :param tagspec: the name or number of a tag.
-    :param datatype: the datatype to assign to the tag if it must be created.
-    :param tagSet: the TiffTagSet class of tags to use.
-    :returns: a TiffTag.
-    """
-    try:
-        return tagSet[tagspec]
-    except Exception:
-        pass
-    try:
-        tagval = int(tagspec)
-    except ValueError:
-        try:
-            tagval = int(tagspec, 0)
-        except ValueError:
-            tagval = -1
-    if tagval < 0 or tagval >= 65536:
-        raise Exception('Unknown tag %s' % tagspec)
-    return TiffTag(tagval, {'name': tagval, 'datatype': datatype})
-
-
 def _tagspec_to_ifd(tagspec, info, value=None):
     """
     Given a tag specification of the form
@@ -359,10 +331,10 @@ def _tagspec_to_ifd(tagspec, info, value=None):
         datatype = Datatype[datatype]
         if value is not None and datatype not in valueTypes:
             raise Exception('Value %r cannot be converted to datatype %s' % (value, datatype))
-    tag = _tagspec_to_tag(tagspec, datatype, tagSet)
-    if tag.datatype is not None:
+    tag = get_or_create_tag(tagspec, tagSet, **({'datatype': datatype} if datatype else {}))
+    if 'datatype' in tag:
         tagDatatypes = tag.datatype if isinstance(tag.datatype, tuple) else (tag.datatype, )
-    if datatype is None and tag.datatype is not None:
+    if datatype is None and 'datatype' in tag:
         datatype = next((dt for dt in tagDatatypes if value is None or dt in valueTypes), None)
     if value is not None:
         if datatype is None:
@@ -371,7 +343,7 @@ def _tagspec_to_ifd(tagspec, info, value=None):
                 Datatype.SBYTE, Datatype.SSHORT, Datatype.SLONG, Datatype.SLONG8,
                 Datatype.DOUBLE, Datatype.ASCII, Datatype.UNDEFINED
             ) if dt in valueTypes)
-        if tag.datatype is not None and datatype not in tagDatatypes:
+        if 'datatype' in tag and datatype not in tagDatatypes:
             logger.warning(
                 'Value %r is datatype %s which is not a known datatype for tag %s.',
                 data, datatype, tag)
