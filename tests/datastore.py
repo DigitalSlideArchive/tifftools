@@ -17,7 +17,7 @@ registry = {
     # Tiff with secondary image, EXIF, and GPS IFDs
     'd043-200.tif': 'sha512:c0195fc428172223206ffc5fda85f42b62d7b5526c3b097d9c57970030e3419c846834a8e82d1fda037310ff63a8698926e3ea1b65632b36f32cd8c3b15921d0',  # noqa
     # Tiff with subifds with subifds
-    'subsubifds.tif': 'sha512:cc2930e37dfc5c7395b4f462dc82b80bb507e4abfd5dcd8daefb9e55d65099205704855d3bdebd5f025f3eeb2647291b7e457e7d21038a0950bfb40f8d00edb7',  # noqa
+    'subsubifds.tif': 'sha512:372ca32735c8a8fdbe2286dabead9e779da63f10ba81eda84625e5273f76d74ca1a47a978f67e9c00c12f7f72009c7b2c07a641e643bb0c463812f4ae7f15d6e',  # noqa
 }
 
 

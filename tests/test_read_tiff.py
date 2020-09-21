@@ -47,6 +47,10 @@ def test_read_tiff_bad_stream():
 
 @pytest.mark.parametrize('test_path,msg', [
     ('bad_tag_offset.tif', 'from desired offset'),
+    ('bad_ifd_offset.tif', 'from desired offset'),
+    ('bad_datatype.tif', 'Unknown datatype'),
+    ('bad_double_reference.tif', 'double referenced'),
+    ('bad_subifd_offset.tif', 'from desired offset'),
 ])
 def test_read_tiff_warning_file(test_path, msg, caplog):
     path = os.path.join(os.path.dirname(__file__), 'data', test_path)
