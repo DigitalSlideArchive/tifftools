@@ -280,6 +280,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     """
     ptrpack = 'Q' if bigtiff else 'L'
     tagdatalen = 8 if bigtiff else 4
+    ptrmax = 256 ** tagdatalen
     dest.seek(0, os.SEEK_END)
     ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
     subifdPtrs = {}
@@ -326,12 +327,12 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
             else:
                 if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
-                tagrecord += struct.pack(bom + ptrpack, dest.tell())
+                tagrecord += struct.pack(bom + ptrpack, dest.tell() % ptrmax)
                 dest.write(data)
             ifdrecord += tagrecord
     pos = dest.tell()
     dest.seek(ifdPtr)
-    dest.write(struct.pack(bom + ptrpack, pos))
+    dest.write(struct.pack(bom + ptrpack, pos % ptrmax))
     dest.seek(0, os.SEEK_END)
     dest.write(ifdrecord)
     nextifdPtr = dest.tell()
