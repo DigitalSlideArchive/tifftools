@@ -16,9 +16,10 @@ class TiffConstant(int):
         """
         self.__dict__.update(constantDict)
         self.value = value
+        self.name = str(getattr(self, 'name', self.value))
 
     def __str__(self):
-        if hasattr(self, 'name') and str(self.name) != str(self.value):
+        if str(self.name) != str(self.value):
             return '%s %d (0x%X)' % (self.name, self.value, self.value)
         return '%d (0x%X)' % (self.value, self.value)
 
@@ -104,6 +105,7 @@ class TiffConstantSet(object):
                     names[altname.lower()] = entry
         self.__dict__.update(names)
         self._entries = entries
+        self._setClass = setClass
 
     def __contains__(self, other):
         return hasattr(self, str(other))
@@ -125,9 +127,45 @@ class TiffConstantSet(object):
         except AttributeError:
             raise KeyError(key)
 
+    def get(self, key, default=None):
+        if hasattr(self, str(key)):
+            return getattr(self, str(key))
+        return default
+
     def __iter__(self):
         for k, v in sorted(self._entries.items()):
             yield v
+
+
+def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
+    """
+    Get a tag from a tag set.  If the key does not exist and can be converted
+    to an integer, create a tag with that value of the same type as used by the
+    specified tag set.  If no tag set is specified, return a TiffConstant with
+    the specified value.
+
+    :param key: the name or value of the tag to get or create.
+    :param tagSet: optional TiffConstantSet with known tags.
+    :param upperLimit: if True, don't allow new tags with values >= 65536.
+        Such tags are used for signaling in libtiff, so this can optionally be
+        allowed.
+   :param **tagOptions: if tag needs to be created and this is specified, add
+        this as part of creating the tag.
+    :returns: a TiffConstant.
+    """
+    if tagSet and key in tagSet:
+        return tagSet[key]
+    try:
+        value = int(key)
+    except ValueError:
+        try:
+            value = int(key, 0)
+        except ValueError:
+            value = -1
+    if value < 0 or (upperLimit and value >= 65536):
+        raise Exception('Unknown tag %s' % key)
+    tagClass = tagSet._setClass if tagSet else TiffConstant
+    return tagClass(value, tagOptions)
 
 
 Datatype = TiffConstantSet('TiffDatatype', {

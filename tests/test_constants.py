@@ -1,6 +1,7 @@
 import pytest
 
 import tifftools
+from tifftools.constants import get_or_create_tag
 
 
 def test_tiffconstant():
@@ -36,3 +37,31 @@ def test_tiffconstantset():
     assert s.ImageDescription == 270
     assert getattr(s, '270').name == 'ImageDescription'
     assert getattr(s, '0x10e').name == 'ImageDescription'
+    with pytest.raises(KeyError):
+        s['notpresent']
+    assert s.get('ImageDescription').name == 'ImageDescription'
+    assert s.get('notpresent') is None
+
+
+def test_get_or_create_tag():
+    assert get_or_create_tag('ImageDescription', tifftools.Tag).name == 'ImageDescription'
+    assert get_or_create_tag('40000', tifftools.Tag).name == '40000'
+    assert get_or_create_tag(40000, tifftools.Tag).name == '40000'
+    assert get_or_create_tag('0x9c40', tifftools.Tag).name == '40000'
+    assert isinstance(get_or_create_tag(40000, tifftools.Tag), tifftools.TiffTag)
+    assert get_or_create_tag(40000, tifftools.Tag).get('datatype') is None
+    assert get_or_create_tag(
+        40000, tifftools.Tag, datatype=tifftools.Datatype.ASCII
+    ).datatype == tifftools.Datatype.ASCII
+    assert get_or_create_tag(40000).name == '40000'
+    assert not isinstance(get_or_create_tag(40000), tifftools.TiffTag)
+
+
+def test_get_or_create_tag_limits():
+    with pytest.raises(Exception):
+        get_or_create_tag(-1)
+    with pytest.raises(Exception):
+        get_or_create_tag(70000)
+    with pytest.raises(Exception):
+        get_or_create_tag('notatag')
+    get_or_create_tag(70000, upperLimit=False)

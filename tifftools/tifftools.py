@@ -4,7 +4,7 @@ import logging
 import os
 import struct
 
-from .constants import Datatype, Tag, TiffTag
+from .constants import Datatype, Tag, get_or_create_tag
 from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 
 logger = logging.getLogger(__name__)
@@ -105,15 +105,8 @@ def read_tiff_limit_ifds(info, limitRecords, tagSet=Tag):
         tagName, subIFDNum = 'SubIFD', limitRecords[1]
         if ':' in limitRecords[1]:
             tagName, subIFDNum = limitRecords[1].split(':', 1)
-        try:
-            tag = tagSet[tagName]
-            tagSet = tag.get('tagset')
-        except Exception:
-            tagSet = None
-            try:
-                tag = int(tagName)
-            except ValueError:
-                tag = int(tagName, 0)
+        tag = get_or_create_tag(tagName, tagSet)
+        tagSet = tag.get('tagset')
         ifds = ifd['tags'][int(tag)]['ifds'][int(subIFDNum)]
     else:
         ifds = [ifd]
@@ -195,10 +188,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
     """
     bom = info['endianPack']
     for tag, taginfo in ifd['tags'].items():
-        try:
-            tag = tagSet[tag]
-        except Exception:
-            tag = tag
+        tag = get_or_create_tag(tag, tagSet)
         typesize = Datatype[taginfo['type']].size
         pos = taginfo.get('offset', taginfo['datapos'])
         if not check_offset(info['size'], pos, taginfo['count'] * typesize):
@@ -300,10 +290,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     subifdPtrs = {}
     with OpenPathOrFobj(ifd['path_or_fobj'], 'rb') as src:
         for tag, taginfo in sorted(ifd['tags'].items()):
-            try:
-                tag = tagSet[tag]
-            except Exception:
-                tag = TiffTag(int(tag), {'name': str(tag), 'datatype': Datatype[taginfo['type']]})
+            tag = get_or_create_tag(tag, tagSet, datatype=Datatype[taginfo['type']])
             if tag.isIFD() or taginfo['type'] in (Datatype.IFD, Datatype.IFD8):
                 if not len(taginfo.get('ifds', [])):
                     continue
