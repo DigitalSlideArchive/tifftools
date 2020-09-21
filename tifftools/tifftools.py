@@ -206,12 +206,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
         if ((hasattr(tag, 'isIFD') and tag.isIFD()) or
                 Datatype[taginfo['datatype']] in (Datatype.IFD, Datatype.IFD8)):
             taginfo['ifds'] = []
-            if not check_offset(info['size'], pos, taginfo['count'] * typesize):
-                return
-            tiff.seek(pos)
-            subifdOffsets = struct.unpack(
-                bom + ('Q' if info['bigtiff'] else 'L') * taginfo['count'],
-                tiff.read(taginfo['count'] * typesize))
+            subifdOffsets = taginfo['data']
             for subidx, subifdOffset in enumerate(subifdOffsets):
                 subifdRecord = []
                 taginfo['ifds'].append(subifdRecord)
@@ -290,7 +285,9 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     subifdPtrs = {}
     with OpenPathOrFobj(ifd['path_or_fobj'], 'rb') as src:
         for tag, taginfo in sorted(ifd['tags'].items()):
-            tag = get_or_create_tag(tag, tagSet, datatype=Datatype[taginfo['datatype']])
+            tag = get_or_create_tag(
+                tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}
+                                if taginfo.get('datatype') else {}))
             if tag.isIFD() or taginfo['datatype'] in (Datatype.IFD, Datatype.IFD8):
                 if not len(taginfo.get('ifds', [])):
                     continue
