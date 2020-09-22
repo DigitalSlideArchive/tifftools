@@ -162,6 +162,8 @@ def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
             value = int(key, 0)
         except ValueError:
             value = -1
+    if tagSet and value in tagSet:
+        return tagSet[value]
     if value < 0 or (upperLimit and value >= 65536):
         raise Exception('Unknown tag %s' % key)
     tagClass = tagSet._setClass if tagSet else TiffConstant
@@ -639,7 +641,7 @@ Tag = TiffConstantSet(TiffTag, {
     34910: {'name': 'FaxRecvTime'},
     34911: {'name': 'FAXDCS'},
     34929: {'name': 'FEDEX_EDR'},
-    37439: {'name': 'STONITS'},
+    37439: {'name': 'StoNits'},
     40965: {'name': 'InteroperabilityIFD', 'datatype': (Datatype.IFD, Datatype.IFD8), 'tagset': InteroperabilityTag},
     50674: {'name': 'LERC_PARAMETERS'},
     50706: {'name': 'DNGVERSION'},

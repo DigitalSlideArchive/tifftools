@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 class ThrowOnLevelHandler(logging.NullHandler):
     def handle(self, record):
-        if record.levelno >= self.level:
-            raise Exception(record.getMessage())
+        raise Exception(record.getMessage())
 
 
 def _apply_flags_to_ifd(ifd, bigtiff=None, bigendian=None, **kwargs):
@@ -186,7 +185,7 @@ def _iterate_ifds(ifds, subifds=False):
                 yield from _iterate_ifds(subifd, subifds)
 
 
-def _makeSplitName(prefix, num, neededChars):
+def _make_split_name(prefix, num, neededChars):
     """
     Construct a split name from a prefix, a number, and the number of
     characters needed to represent the number.
@@ -225,11 +224,11 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
     if not overwrite:
         logger.debug('Verifying output files do not exist')
         for idx in range(numOutput):
-            outputPath = _makeSplitName(prefix, idx, neededChars)
+            outputPath = _make_split_name(prefix, idx, neededChars)
             if os.path.exists(outputPath):
                 raise Exception('File already exists: %s' % outputPath)
     for idx, ifd in enumerate(_iterate_ifds(info['ifds'], subifds=subifds)):
-        outputPath = _makeSplitName(prefix, idx, neededChars)
+        outputPath = _make_split_name(prefix, idx, neededChars)
         if subifds and int(Tag.SubIFD) in ifd['tags']:
             ifd = copy.deepcopy(ifd)
             del ifd['tags'][int(Tag.SubIFD)]
@@ -286,7 +285,7 @@ def _value_to_types(value):
     if value in ('@-', b'@-'):
         value = sys.stdin.buffer.read()
     elif isinstance(value, str) and value.startswith('@'):
-        value = open(value[:1], 'rb').read()
+        value = open(value[1:], 'rb').read()
     results = {Datatype.UNDEFINED: value if isinstance(value, bytes) else value.encode()}
     if isinstance(value, bytes):
         try:
@@ -328,6 +327,8 @@ def _tagspec_to_ifd(tagspec, info, value=None):
     datatype = None
     if ':' in tagspec:
         tagspec, datatype = tagspec.split(':', 1)
+        if datatype not in Datatype:
+            raise Exception('Unknown datatype %s' % datatype)
         datatype = Datatype[datatype]
         if value is not None and datatype not in valueTypes:
             raise Exception('Value %r cannot be converted to datatype %s' % (value, datatype))
@@ -573,16 +574,20 @@ use 'sample.tiff,1'."""
     logging.basicConfig(
         stream=sys.stderr, level=max(1, logging.WARNING - 10 * (args.verbose - args.silent)))
     logger.debug('Parsed arguments: %r', args)
-    logging.getLogger('tifftools').addHandler(
-        ThrowOnLevelHandler(level=logging.WARNING if args.warningIsError else logging.ERROR))
-    if args.command:
-        try:
-            func = globals().get('tiff_' + args.command)
-            func(**vars(args))
-        except Exception as exc:
-            if args.verbose - args.silent >= 1:
-                raise
-            sys.stderr.write(str(exc).strip() + '\n')
-            return 1
-    else:
-        mainParser.print_help(sys.stdout)
+    logLevelHandler = ThrowOnLevelHandler(
+        level=logging.WARNING if args.warningIsError else logging.ERROR)
+    try:
+        logging.getLogger('tifftools').addHandler(logLevelHandler)
+        if args.command:
+            try:
+                func = globals().get('tiff_' + args.command)
+                func(**vars(args))
+            except Exception as exc:
+                if args.verbose - args.silent >= 1:
+                    raise
+                sys.stderr.write(str(exc).strip() + '\n')
+                return 1
+        else:
+            mainParser.print_help(sys.stdout)
+    finally:
+        logging.getLogger('tifftools').handlers.remove(logLevelHandler)

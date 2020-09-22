@@ -77,3 +77,29 @@ def test_split_and_merge_by_ifd(tmp_path):
             assert data1 == data2
             if not len(data1):
                 break
+
+
+@pytest.mark.parametrize('prefix,num,neededChars,result', [
+    (None, 0, 3, './aaa.tif'),
+    (None, 1, 4, './aaab.tif'),
+    (None, 26, 3, './aba.tif'),
+    ('prefix', 0, 3, 'prefixaaa.tif'),
+])
+def test_make_split_name(prefix, num, neededChars, result):
+    assert tifftools.commands._make_split_name(prefix, num, neededChars) == result
+
+
+def test_split_no_overwrite(tmp_path):
+    path = datastore.fetch('subsubifds.tif')
+    tifftools.tiff_split(str(path), tmp_path / 'test')
+    with pytest.raises(Exception) as exc:
+        tifftools.tiff_split(str(path), tmp_path / 'test')
+    assert 'already exists' in str(exc.value)
+
+
+def test_split_overwrite(tmp_path):
+    path = datastore.fetch('subsubifds.tif')
+    tifftools.tiff_split(str(path), tmp_path / 'test')
+    mtime = os.path.getmtime(tmp_path / 'testaaa.tif')
+    tifftools.tiff_split(str(path), tmp_path / 'test', overwrite=True)
+    assert os.path.getmtime(tmp_path / 'testaaa.tif') != mtime

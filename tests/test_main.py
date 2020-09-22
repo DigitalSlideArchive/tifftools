@@ -1,3 +1,4 @@
+import os
 import runpy
 import sys
 
@@ -36,6 +37,15 @@ def test_main(cmd_params, check_text, catch_exc, test_path, capsys):
     (['info', '--help'], 'optional arguments', SystemExit, None),
     (['dump', '<input>'], 'Directory', None, 'aperio_jp2k.svs'),
     (['info', 'nosuchfile'], 'No such file', SystemExit, None),
+    (['info', os.path.join(
+        os.path.dirname(__file__), 'data', 'bad_double_reference.tif')],
+     '', None, None),
+    (['info', '-X', os.path.join(
+        os.path.dirname(__file__), 'data', 'bad_double_reference.tif')],
+     'double referenced', SystemExit, None),
+    (['info', '-X', '-v', os.path.join(
+        os.path.dirname(__file__), 'data', 'bad_double_reference.tif')],
+     '', Exception, None),
 ])
 def test_main_module(cmd_params, check_text, catch_exc, test_path, capsys):
     if test_path:
