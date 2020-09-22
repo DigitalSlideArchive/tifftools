@@ -45,6 +45,8 @@ def test_tiffconstantset():
 
 def test_get_or_create_tag():
     assert get_or_create_tag('ImageDescription', tifftools.Tag).name == 'ImageDescription'
+    assert get_or_create_tag(
+        tifftools.Tag.ImageDescription, tifftools.Tag).name == 'ImageDescription'
     assert get_or_create_tag('40000', tifftools.Tag).name == '40000'
     assert get_or_create_tag(40000, tifftools.Tag).name == '40000'
     assert get_or_create_tag('0x9c40', tifftools.Tag).name == '40000'

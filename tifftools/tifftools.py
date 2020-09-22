@@ -290,8 +290,6 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                 tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}
                                 if taginfo.get('datatype') else {}))
             if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
-                if not len(taginfo.get('ifds', [])):
-                    continue
                 data = [0] * len(taginfo['ifds'])
                 taginfo = taginfo.copy()
                 taginfo['datatype'] = Datatype.IFD8 if bigtiff else Datatype.IFD
