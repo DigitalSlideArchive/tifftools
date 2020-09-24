@@ -10,6 +10,7 @@ Example
 =======
 
 .. code-block:: python
+
     import tifftools
     info = tifftools.read_tiff('photograph.tif')
     info['ifds'][0]['tags'][tifftools.Tag.ImageDescription.value] = {
