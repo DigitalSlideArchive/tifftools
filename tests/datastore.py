@@ -15,7 +15,7 @@ registry = {
     # OME TIFF with SubIFDs
     'sample.subifd.ome.tif': 'sha512:35ec252c94b1ad0b9d5bd42c89c1d15c83065d6734100d6f596237ff36e8d4495bcfed2c9ea24ab0b4a35aef59871da429dbd48faf0232219dc4391215ba59ce',  # noqa
     # Tiff with secondary image, EXIF, and GPS IFDs
-    'd043-200.tif': 'sha512:c0195fc428172223206ffc5fda85f42b62d7b5526c3b097d9c57970030e3419c846834a8e82d1fda037310ff63a8698926e3ea1b65632b36f32cd8c3b15921d0',  # noqa
+    'd043-200.tif': 'sha512:0ce72614df0409297c2a7261d13fd2501fcc4a7044680f1de00c1c21620a2bcc233a7ca5cf92e704d7364c6a8bb79e12d2122063b1f4ccce09b550525ba728ab',  # noqa
     # Tiff with subifds with subifds
     'subsubifds.tif': 'sha512:372ca32735c8a8fdbe2286dabead9e779da63f10ba81eda84625e5273f76d74ca1a47a978f67e9c00c12f7f72009c7b2c07a641e643bb0c463812f4ae7f15d6e',  # noqa
 }

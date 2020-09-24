@@ -24,6 +24,36 @@ Example
     }
     tifftools.write_tiff(info, 'photograph_tagged.tif')
 
+Commands
+========
+
+``tifftools --help`` and ``tifftools <command> --help`` provide usage details.
+
+- ``tifftools split [--subifds] [--overwrite] source [prefix]``: split a tiff file into separate files.  This is also available as the library function ``tifftools.tiff_split``.
+
+- ``tifftools concat [--overwrite] output source [source ...]``: merge multiple tiff files together.  Alias: ``tifftools merge``.  This is also available as the library function ``tifftools.tiff_concat``.
+
+- ``tifftools dump [--max MAX] [--json] source``: print information about a tiff file, including all tags, IFDs, and subIFDs.  Alias: ``tifftool info``.  This is also available as the library function ``tifftools.tiff_dump``.
+
+- ``tifftools set source [--overwrite] [output] [--set TAG[:DATATYPE][,<IFD-#>] VALUE] [--unset TAG:[,<IFD-#>]] [--setfrom TAG[,<IFD-#>] TIFFPATH]``: modify, add, or remove tags.  This is also available as the library function ``tifftools.tiff_set``.
+
+Library Functions
+=================
+
+- read_tiff
+
+- write_tiff
+
+- Constants
+
+- Tag
+
+- Datatype
+
+- get_or_create_tag
+
+- EXIFTag, GPSTag, etc.
+
 Purpose
 =======
 
@@ -44,33 +74,39 @@ Many programs deal with both classic and BigTIFF.  Some will start writing a cla
 
 ``tifftools`` does NOT compress or decompress any image data.  This is not an image viewer.  If you need to recompress an image or otherwise manipulate pixel data, use libtiff or another library.
 
-Commands
-========
+As an explicit example, with libtiff's ``tiffset``, tag data just gets dereferenced and is still in the file:
 
-- tiff_split
+.. code-block:: bash
 
-- tiff_concat
+    $ grep 'secret' photograph.tif  || echo 'not present'
+    not present
+    $ tiffset -s ImageDescription "secret phrase" photograph.tif 
+    $ tiffinfo photograph.tif | grep ImageDescription
+      ImageDescription: secret phrase
+    $ grep 'secret' photograph.tif  || echo 'not present'
+    Binary file photograph.tif matches
+    $ tiffset photograph.tif -s ImageDescription "public phrase"
+    $ tiffinfo photograph.tif | grep ImageDescription
+      ImageDescription: public phrase
+    $ grep 'secret' photograph.tif  || echo 'not present'
+    Binary file photograph.tif matches
 
-- tiff_dump
+Whereas, with ``tifftools``:
 
-- tiff_set
+.. code-block:: bash
 
-Library Functions
-=================
-
-- read_tiff
-
-- write_tiff
-
-- Constants
-
-- Tag
-
-- Datatype
-
-- get_or_create_tag
-
-- EXIFTag, GPSTag, etc.
+    $ grep 'secret' photograph.tif || echo 'not present'
+    not present
+    $ tifftools set -y -s ImageDescription "secret phrase" photograph.tif 
+    $ tiffinfo photograph.tif | grep ImageDescription
+      ImageDescription: secret phrase
+    $ grep 'secret' photograph.tif || echo 'not present'
+    Binary file photograph.tif matches
+    $ tifftools set -y photograph.tif -s ImageDescription "public phrase"
+    $ tiffinfo photograph.tif | grep ImageDescription
+      ImageDescription: public phrase
+    $ grep 'secret' photograph.tif || echo 'not present'
+    not present
 
 TIFF File Structure
 ===================
