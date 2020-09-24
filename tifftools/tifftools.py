@@ -5,6 +5,7 @@ import os
 import struct
 
 from .constants import Datatype, Tag, get_or_create_tag
+from .exceptions import MustBeBigTiffException, TifftoolsException
 from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 
 logger = logging.getLogger(__name__)
@@ -68,14 +69,14 @@ def read_tiff(path):
         header = tiff.read(4)
         info['header'] = header
         if header not in (b'II\x2a\x00', b'MM\x00\x2a', b'II\x2b\x00', b'MM\x00\x2b'):
-            raise Exception('Not a known tiff header for %s' % path)
+            raise TifftoolsException('Not a known tiff header for %s' % path)
         info['bigEndian'] = header[:2] == b'MM'
         info['endianPack'] = bom = '>' if info['bigEndian'] else '<'
         info['bigtiff'] = b'\x2b' in header[2:4]
         if info['bigtiff']:
             offsetsize, zero, nextifd = struct.unpack(bom + 'HHQ', tiff.read(12))
             if offsetsize != 8 or zero != 0:
-                raise Exception('Unexpected offset size')
+                raise TifftoolsException('Unexpected offset size')
         else:
             nextifd = struct.unpack(bom + 'L', tiff.read(4))[0]
         info['firstifd'] = nextifd
@@ -241,8 +242,8 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
         ifds = ifds.get('ifds', [ifds])
     bigEndian = ifds[0].get('bigEndian', False) if bigEndian is None else bigEndian
     bigtiff = ifds[0].get('bigtiff', False) if bigtiff is None else bigtiff
-    if not allowExisting and os.path.exists(path):
-        raise Exception('File already exists')
+    if not allowExisting and not is_filelike_object(path) and os.path.exists(path):
+        raise TifftoolsException('File already exists')
     rewriteBigtiff = False
     with OpenPathOrFobj(path, 'wb') as dest:
         bom = '>' if bigEndian else '<'
@@ -255,13 +256,16 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
             ifdPtr = len(header) - 4
         dest.write(header)
         for ifd in ifds:
-            ifdPtr = write_ifd(dest, bom, bigtiff, ifd, ifdPtr)
-            if not bigtiff and dest.tell() >= 2**32:
+            try:
+                ifdPtr = write_ifd(dest, bom, bigtiff, ifd, ifdPtr)
+            except MustBeBigTiffException:
+                # This can only be raised if bigtiff is false
                 rewriteBigtiff = True
                 break
-    if rewriteBigtiff:
-        os.unlink(path)
-        write_tiff(ifds, path, bigEndian, True)
+        if rewriteBigtiff:
+            dest.seek(0)
+            dest.truncate(0)
+            write_tiff(ifds, dest, bigEndian, True)
 
 
 def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
@@ -307,6 +311,8 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                         dest, src, data, [tag.bytecounts] * count, ifd['size'])
                 taginfo = taginfo.copy()
                 taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
+            if not bigtiff and Datatype[taginfo['datatype']] in {Datatype.LONG8, Datatype.SLONG8}:
+                raise MustBeBigTiffException('There are datatypes that require bigtiff format.')
             if Datatype[taginfo['datatype']].pack:
                 pack = Datatype[taginfo['datatype']].pack
                 count //= len(pack)
@@ -325,12 +331,18 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
             else:
                 if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
-                tagrecord += struct.pack(bom + ptrpack, dest.tell() % ptrmax)
+                if not bigtiff and dest.tell() >= ptrmax:
+                    raise MustBeBigTiffException(
+                        'The file is large enough it must be in bigtiff format.')
+                tagrecord += struct.pack(bom + ptrpack, dest.tell())
                 dest.write(data)
             ifdrecord += tagrecord
+    if not bigtiff and dest.tell() >= ptrmax:
+        raise MustBeBigTiffException(
+            'The file is large enough it must be in bigtiff format.')
     pos = dest.tell()
     dest.seek(ifdPtr)
-    dest.write(struct.pack(bom + ptrpack, pos % ptrmax))
+    dest.write(struct.pack(bom + ptrpack, pos))
     dest.seek(0, os.SEEK_END)
     dest.write(ifdrecord)
     nextifdPtr = dest.tell()
@@ -389,7 +401,7 @@ def write_tag_data(dest, src, offsets, lengths, srclen):
     COPY_CHUNKSIZE = 1024 ** 2
 
     if len(offsets) != len(lengths):
-        raise Exception('Offsets and byte counts do not correspond.')
+        raise TifftoolsException('Offsets and byte counts do not correspond.')
     destOffsets = [0] * len(offsets)
     # We preserve the order of the chunks from the original file
     offsetList = sorted([(offset, idx) for idx, offset in enumerate(offsets)])

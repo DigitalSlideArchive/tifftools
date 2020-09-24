@@ -36,7 +36,8 @@ def OpenPathOrFobj(pathOrObj, mode='rb'):
     if not is_filelike_object(pathOrObj):
         with open(pathOrObj, mode) as fobj:
             yield fobj
-    elif hasattr(pathOrObj, 'seekable') and pathOrObj.seekable() and hasattr(pathOrObj, 'tell'):
+    elif (hasattr(pathOrObj, 'seekable') and pathOrObj.seekable() and
+            hasattr(pathOrObj, 'tell') and hasattr(pathOrObj, 'truncate')):
         yield pathOrObj
     elif 'w' not in mode.lower():
         # This doesn't use the TemporaryFile context manager, as it is useful

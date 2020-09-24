@@ -1,6 +1,8 @@
 # flake8: noqa 501
 # Disable flake8 line-length check (E501), it makes this file harder to read
 
+from .exceptions import UnknownTagException
+
 
 class TiffConstant(int):
     def __new__(cls, value, *args, **kwargs):
@@ -165,7 +167,7 @@ def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
     if tagSet and value in tagSet:
         return tagSet[value]
     if value < 0 or (upperLimit and value >= 65536):
-        raise Exception('Unknown tag %s' % key)
+        raise UnknownTagException('Unknown tag %s' % key)
     tagClass = tagSet._setClass if tagSet else TiffConstant
     return tagClass(value, tagOptions)
 

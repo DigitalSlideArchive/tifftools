@@ -43,6 +43,38 @@ def test_write_switch_to_bigtiff(tmp_path):
     assert destinfo['bigtiff'] is True
 
 
+def test_write_bigtiff_from_datatype(tmp_path):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
+    info = tifftools.read_tiff(path)
+    info['ifds'][0]['tags'][23456] = {
+        'datatype': tifftools.Datatype.LONG8,
+        'data': [8],
+    }
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    destinfo = tifftools.read_tiff(destpath)
+    assert destinfo['bigtiff'] is True
+
+
+def test_write_bigtiff_with_long_data(tmp_path):
+    path = datastore.fetch('hamamatsu.ndpi')
+    info = tifftools.read_tiff(path)
+    info['ifds'][0]['tags'][tifftools.Tag.FreeOffsets.value] = {
+        'datatype': tifftools.Datatype.LONG,
+        'data': [8],
+    }
+    info['ifds'][0]['tags'][tifftools.Tag.FreeByteCounts.value] = {
+        'datatype': tifftools.Datatype.LONG,
+        'data': [97044000],
+    }
+    info['ifds'].extend(info['ifds'])
+    info['ifds'].extend(info['ifds'])
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    destinfo = tifftools.read_tiff(destpath)
+    assert destinfo['bigtiff'] is True
+
+
 def test_write_bytecount_data(tmp_path):
     path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
     info = tifftools.read_tiff(path)
