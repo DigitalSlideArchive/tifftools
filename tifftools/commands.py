@@ -287,14 +287,14 @@ def _value_to_types(value):
         value = sys.stdin.buffer.read()
     elif isinstance(value, str) and value.startswith('@'):
         value = open(value[1:], 'rb').read()
-    results = {Datatype.UNDEFINED: value if isinstance(value, bytes) else value.encode()}
+    results = {Datatype.UNDEFINED: value if isinstance(value, bytes) else str(value).encode()}
     if isinstance(value, bytes):
         try:
             results[Datatype.ASCII] = value.decode()
         except UnicodeDecodeError:
             pass
     else:
-        results[Datatype.ASCII] = value
+        results[Datatype.ASCII] = str(value)
     if Datatype.ASCII in results and re.search(r'\d', results[Datatype.ASCII]):
         _value_to_types_numeric(results)
     return results
@@ -341,11 +341,11 @@ def _tagspec_to_ifd(tagspec, info, value=None):
         datatype = next((dt for dt in tagDatatypes if value is None or dt in valueTypes), None)
     if value is not None:
         if datatype is None:
-            datatype = next(dt for dt in (
+            datatype = next((dt for dt in (
                 Datatype.BYTE, Datatype.SHORT, Datatype.LONG, Datatype.LONG8,
                 Datatype.SBYTE, Datatype.SSHORT, Datatype.SLONG, Datatype.SLONG8,
-                Datatype.DOUBLE, Datatype.ASCII, Datatype.UNDEFINED
-            ) if dt in valueTypes)
+                Datatype.DOUBLE, Datatype.ASCII
+            ) if dt in valueTypes), Datatype.UNDEFINED)
         if 'datatype' in tag and datatype not in tagDatatypes:
             logger.warning(
                 'Value %r is datatype %s which is not a known datatype for tag %s.',
