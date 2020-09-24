@@ -1,4 +1,5 @@
 import io
+import logging
 import shutil
 
 import pytest
@@ -6,6 +7,8 @@ import pytest
 import tifftools
 
 from .datastore import datastore
+
+LOGGER = logging.getLogger('tifftools')
 
 
 @pytest.mark.parametrize('setlist,ifdspec,tag,datavalue', [
@@ -115,3 +118,23 @@ def test_tiff_set_failures(tmp_path, setlist, msg):
     with pytest.raises(Exception) as exc:
         tifftools.tiff_set(path, dest, setlist=setlist)
     assert msg in str(exc.value)
+
+
+@pytest.mark.parametrize('setlist,msg', [
+    ([('Orientation:LONG', 9)], 'not in known values'),
+    ([('Orientation', None)], 'Could not determine data'),
+])
+def test_tiff_set_warnings(tmp_path, setlist, msg, caplog):
+    path = datastore.fetch('d043-200.tif')
+    dest = tmp_path / 'results.tif'
+    with caplog.at_level(logging.WARNING):
+        tifftools.tiff_set(path, dest, setlist=setlist)
+    assert msg in caplog.text
+
+
+def test_tiff_set_setfrom_missing(tmp_path, caplog):
+    path = datastore.fetch('d043-200.tif')
+    dest = tmp_path / 'results.tif'
+    with caplog.at_level(logging.WARNING):
+        tifftools.tiff_set(str(path) + ',1', dest, setfrom=[('InkNames', path)])
+    assert 'is not in' in caplog.text
