@@ -37,7 +37,7 @@ The command line tools associated with libtiff are commonly used for similar pur
 
 Likewise, there is a wide variety of EXIF tools.  For the most part, these only alter tags, usually by appending to the existing file.
 
-Many programs deal with both classic and BigTIFF.  Some will start writing a classic TIFF, but leave a small amount of unused space just after the file header.  If the file exceeds 4Gb, parts of the file are rewritten to covert it to a BigTIFF file, leaving small amounts of abandoned data within the file.
+Many programs deal with both classic and BigTIFF.  Some will start writing a classic TIFF, but leave a small amount of unused space just after the file header.  If the file exceeds 4Gb, parts of the file are rewritten to convert it to a BigTIFF file, leaving small amounts of abandoned data within the file.
 
 ``tifftools`` fills this need.  All tags are copied, even if unknown.  Files are always rewritten so that there is never abandoned data inside the file.  ``tifftools dump`` shows information on all IFDs and tags.  Many of the command line options are directly inspired from libtiff.
 
@@ -101,7 +101,7 @@ Unknown tags that are offsets and have a datatype other than IFD or IFD8
 won't be copied properly, as it is impossible to distinguish integer data
 from offsets given LONG or LONG8 datatypes.  This can be remedied by
 defining a new ``TiffConstant`` record which contains a ``bytecounts`` entry
-to instruct whether the offsets refere to fixed length data or should get the
+to instruct whether the offsets refer to fixed length data or should get the
 length of data from another tag.
 
 Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's ``tiffset`` and most EXIF tools.
