@@ -269,7 +269,7 @@ def _value_to_types_numeric(results):
             continue
         try:
             struct.pack(datatype.pack * (len(intList) // len(datatype.pack)), *data)
-        except struct.error:
+        except (struct.error, ValueError):
             continue
         results[datatype] = data
 
