@@ -50,6 +50,14 @@ jobs:
       - tox:
           env: py38
       - coverage
+  pypy36:
+    docker:
+      - image: pypy:3.6
+    steps:
+      - checkout
+      - tox:
+          env: test-pypy36
+      - coverage
   lint_and_docs:
     docker:
       - image: python:3.8
@@ -96,6 +104,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - pypy36:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - lint_and_docs:
           filters:
             tags:
@@ -108,6 +123,7 @@ workflows:
             - py36
             - py37
             - py38
+            - pypy36
             - lint_and_docs
           filters:
             tags:

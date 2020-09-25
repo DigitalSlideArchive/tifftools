@@ -11,13 +11,6 @@ from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 logger = logging.getLogger(__name__)
 
 
-# IFD tags contain datatype, count, datapos, [offset], data, [ifds],
-#   (key is tag number)
-# IFD contains tags, path_or_fobj, size, tagcount, bigEndian, bigtiff, offset
-# info (tifffile) contains endianPack, bigtiff, bigEndian, header (4 bytes),
-#   firstifd, ifds, path_or_fobj, size
-
-
 def check_offset(filelen, offset, length):
     """
     Check if a specific number of bytes can be read from a file at a given
@@ -47,7 +40,38 @@ def read_tiff(path):
     read the chain of IFDs in the first SubIFD record, ",1,0,2" will read IFD 2
     from IFD 1's first SubIFD.
 
-    :param path: the file to read.
+    The output is an "info" dictionary containing the following keys:
+    - ifds: a list of ifd records
+    - path_or_fobj: the path of the file or a file-like object referencing the
+        tiff file.
+    - size: the total length of the tiff file in bytes.
+    - header: the first four bytes of the tiff file
+    - bigEndian: True if big endian, False if little endian
+    - bigtiff: True if bigtiff, False if classic
+    - endianPack: the byte-ordering-mark for struct.unpack (either '<' or '>')
+    - firstifd: the offset of the first IFD in the file.
+    Each IFD is a dictionary containing the following keys:
+    - offset: the offset of this ifd.
+    - path_or_fobj, size, bigEndian, bigtiff: copied from the file's info
+        dictionary.
+    - tagcount: number of tags in the IFD
+    - tags: a dictionary of tags in this IFD.  The keys are the integer tag
+        values.
+    Each IFD tag is a dictionary containing the following keys:
+    - datatype: the Datatype of the tag
+    - count: the number of elements in the tag.  For most numeric values, this
+        is the total number of entries.  For RATIONAL and SRATIONAL, this is
+        the number of pairs of entries.  For ASCII, this is the length in bytes
+        including a terminating null.  For UNDEFINED, this is the length in
+        bytes.
+    - datapos: the offset within the file (always within the IFD) that the data
+        or offset to the data is located.
+    - [offset]: if the count is large enough that the data cannot be stored in
+        the IFD, this is the offset within the file of the data associated with
+        the tag.
+    - [ifds]: if the tag contains sub-ifds, this is a list of lists of IFDs.
+
+    :param path: the file or stream to read.
     :returns: a dictionary of information on the tiff file.
     """
     limitIFDs = None
@@ -224,9 +248,17 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
     """
     Write a tiff file based on data in a list of ifds.
 
+    The ifds or info record that is passed only needs a subset of the fields
+    that are populated by read_tiff.  Specifically, if either bigEndian or
+    bigtiff are None, their value istaken from either the main info dictionary,
+    if passed, or the first IFD if not.  Otherwise, only the 'ifds' key is used
+    in the info dictionary.  For each IFD, only the 'path_or_fobj' and 'tags'
+    keys are used.  For IFD tags, either the 'ifds' or the 'datatype' and
+    'data' tags are used.
+
     :param ifds: either a list of ifds, a single ifd record, or a read_tiff
         info record.
-    :param path: output path.
+    :param path: output path or stream.
     :param bigEndian: True for big endian, False for little endian, None for
         use the endian set in the first ifd.
     :param bigtiff: True for bigtiff, False for small tiff, None for use the
