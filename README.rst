@@ -148,7 +148,7 @@ Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's ``tif
   :target: https://circleci.com/gh/DigitalSlideArchive/tifftools
   :alt: Build Status
 
-.. |codecov-io| image:: https://codecov.io/gh/DigitalSlideArchive/tifftools/branch/master/graph/badge.svg
+.. |codecov-io| image:: https://img.shields.io/codecov/c/github/DigitalSlideArchive/tifftools.svg
   :target: https://codecov.io/gh/DigitalSlideArchive/tifftools
   :alt: codecov.io
 
