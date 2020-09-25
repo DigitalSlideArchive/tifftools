@@ -30,13 +30,14 @@ setup(
     author='Kitware, Inc.',
     author_email='kitware@kitware.com',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8'
+        'Programming Language :: Python :: 3.8',
+        'Topic :: Utilities',
     ],
     description='Pure python tiff tools to handle all tags and IFDs.',
     install_requires=[
@@ -49,6 +50,7 @@ setup(
     packages=find_packages(exclude=['test', 'test.*']),
     url='https://github.com/DigitalSlideArchive',
     zip_safe=False,
+    python_requires='>=3.6',
     entry_points={
         'console_scripts': [
             'tifftools=tifftools:main',
