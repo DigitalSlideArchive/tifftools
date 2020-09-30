@@ -83,9 +83,9 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
             dest.write(' <%d>' % count)
         for validx, val in enumerate(taginfo['data'][:max * len(datatype.pack)]):
             dest.write(
-                (' %d' if datatype not in (Datatype.FLOAT, Datatype.DOUBLE) else ' %g') % val)
+                (' %d' if datatype not in (Datatype.FLOAT, Datatype.DOUBLE) else ' %.10g') % val)
             if datatype in (Datatype.RATIONAL, Datatype.SRATIONAL) and (validx % 2) and val:
-                dest.write(' (%g)' % (taginfo['data'][validx - 1] / val))
+                dest.write(' (%.8g)' % (taginfo['data'][validx - 1] / val))
             if 'enum' in tag and val in tag.enum:
                 dest.write(' (%s)' % tag.enum[val])
             if 'bitfield' in tag and val:
@@ -443,9 +443,11 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
 
 
 def main(args=None):
+    from . import __version__
+
     if args is None:
         args = sys.argv[1:]
-    description = 'Tiff tools to handle all tags and IFDs.'
+    description = 'Tiff tools to handle all tags and IFDs.  Version %s.' % __version__
     epilog = """All inputs can specify specific IFDs and sub-IFDs by
 appending [,<IFD-#>[,[<tag-name-or-number>:]<SubIFD-#>[,<IFD-#>...]]
 to the source path.  For instance, to only use the second IFD of sample.tiff,
