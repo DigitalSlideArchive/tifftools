@@ -44,11 +44,11 @@ def test_split_sub_subifds(tmp_path):
 def test_split_and_merge(test_path, tmp_path):
     path = datastore.fetch(test_path)
     destpath1 = tmp_path / ('initial' + os.path.splitext(test_path)[1])
-    tifftools.tiff_concat(destpath1, [path])
+    tifftools.tiff_concat([path], destpath1)
     tifftools.tiff_split(path, tmp_path / 'test')
     components = sorted([tmp_path / p for p in os.listdir(tmp_path) if p.startswith('test')])
     destpath2 = tmp_path / ('merged' + os.path.splitext(test_path)[1])
-    tifftools.tiff_merge(destpath2, components)
+    tifftools.tiff_merge(components, destpath2)
     chunksize = 1024 ** 2
     with open(destpath1, 'rb') as f1, open(destpath2, 'rb') as f2:
         while True:
@@ -62,13 +62,13 @@ def test_split_and_merge(test_path, tmp_path):
 def test_split_and_merge_by_ifd(tmp_path):
     path = datastore.fetch('sample.subifd.ome.tif')
     destpath1 = tmp_path / 'initial.tif'
-    tifftools.tiff_merge(destpath1, [path])
+    tifftools.tiff_merge([path], destpath1)
     tifftools.tiff_split(str(path) + ',0', tmp_path / 'test1')
     tifftools.tiff_split(str(path) + ',1', tmp_path / 'test2')
     tifftools.tiff_split(str(path) + ',2', tmp_path / 'test3')
     components = sorted([tmp_path / p for p in os.listdir(tmp_path) if p.startswith('test')])
     destpath2 = tmp_path / 'merged.tif'
-    tifftools.tiff_concat(destpath2, components)
+    tifftools.tiff_concat(components, destpath2)
     chunksize = 1024 ** 2
     with open(destpath1, 'rb') as f1, open(destpath2, 'rb') as f2:
         while True:

@@ -31,9 +31,9 @@ Commands
 
 - ``tifftools split [--subifds] [--overwrite] source [prefix]``: split a tiff file into separate files.  This is also available as the library function ``tifftools.tiff_split``.
 
-- ``tifftools concat [--overwrite] output source [source ...]``: merge multiple tiff files together.  Alias: ``tifftools merge``.  This is also available as the library function ``tifftools.tiff_concat``.
+- ``tifftools concat [--overwrite] source [source ...] output``: merge multiple tiff files together.  Alias: ``tifftools merge``.  This is also available as the library function ``tifftools.tiff_concat``.
 
-- ``tifftools dump [--max MAX] [--json] source``: print information about a tiff file, including all tags, IFDs, and subIFDs.  Alias: ``tifftool info``.  This is also available as the library function ``tifftools.tiff_dump``.
+- ``tifftools dump [--max MAX] [--json] source [source ...]``: print information about a tiff file, including all tags, IFDs, and subIFDs.  Alias: ``tifftool info``.  This is also available as the library function ``tifftools.tiff_dump``.
 
 - ``tifftools set source [--overwrite] [output] [--set TAG[:DATATYPE][,<IFD-#>] VALUE] [--unset TAG:[,<IFD-#>]] [--setfrom TAG[,<IFD-#>] TIFFPATH]``: modify, add, or remove tags.  This is also available as the library function ``tifftools.tiff_set``.
 
