@@ -48,12 +48,12 @@ def tiff_merge(*args, **kwargs):
     return tiff_concat(*args, **kwargs)
 
 
-def tiff_concat(output, source, overwrite=False, **kwargs):
+def tiff_concat(source, output, overwrite=False, **kwargs):
     """
     Concatenate a list of soruce files into a single output file.
 
-    :param output: the output path
     :param source: a list of input paths
+    :param output: the output path
     :overwrite: if False, throw an error if the output already exists.
     """
     ifds = []
@@ -153,11 +153,24 @@ def tiff_dump(source, max=20, dest=None, *args, **kwargs):
     """
     Print the tiff information.
 
-    :param source: the source path.
+    :param source: the source path or a list of source paths.
     :param max: the maximum number of items to display for lists.
     :param dest: an open stream to write to.
     """
     dest = sys.stdout if dest is None else dest
+    if isinstance(source, list):
+        if kwargs.get('json'):
+            dest.write('{\n')
+        for srcidx, src in enumerate(source):
+            if kwargs.get('json'):
+                json.dump(src, dest)
+                dest.write(': ')
+            else:
+                dest.write('-- %s --\n' % src)
+            tiff_dump(src, max=max, dest=dest, *args, **kwargs)
+            if kwargs.get('json'):
+                dest.write(',\n' if srcidx + 1 != len(source) else '\n}')
+        return
     info = read_tiff(source)
     if kwargs.get('json'):
         json.dump(info, dest, indent=2, cls=ExtendedJsonEncoder)
@@ -501,14 +514,14 @@ use 'sample.tiff,1'."""
     parserConcat = subparsers.add_parser(
         'concat',
         aliases=['merge'],
-        help='concat [--overwrite] output source [source ...]',
+        help='concat [--overwrite] source [source ...] output',
         description='Concatenate multiple files into a single TIFF.',
         epilog=epilog)
     parserConcat.add_argument(
-        'output', help='Output file, - for stdout.')
-    parserConcat.add_argument(
         'source', nargs='+',
         help='Source files to concatenate, - for one file on stdin.')
+    parserConcat.add_argument(
+        'output', help='Output file, - for stdout.')
     parserConcat.add_argument(
         '--overwrite', '-y', action='store_true',
         help='Allow overwriting an existing output file.')
@@ -516,11 +529,11 @@ use 'sample.tiff,1'."""
     parserInfo = subparsers.add_parser(
         'dump',
         aliases=['info'],
-        help='dump [--max MAX] [--json] source',
+        help='dump [--max MAX] [--json] source [source ...]',
         description='Print contents of a TIFF file.',
         epilog=epilog)
     parserInfo.add_argument(
-        'source', help='Source file.')
+        'source', nargs='+', help='Source file.')
     parserInfo.add_argument(
         '--max', '-m', type=int, help='Maximum items to display.', default=20)
     parserInfo.add_argument(

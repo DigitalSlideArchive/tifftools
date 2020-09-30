@@ -77,3 +77,22 @@ def test_tiff_dump_specific_ifd(suffix, num_ifds, capsys):
     tifftools.tiff_dump(path + suffix)
     captured = capsys.readouterr()
     assert len(captured.out.split('Directory ')) == num_ifds + 1
+
+
+def test_tiff_dump_multiple(capsys):
+    path1 = datastore.fetch('d043-200.tif')
+    path2 = datastore.fetch('subsubifds.tif')
+    tifftools.tiff_dump([path1, path2])
+    captured = capsys.readouterr()
+    assert len(captured.out.split('Directory ')) == 4 + 9 + 1
+
+
+def test_tiff_dump_multiple_json(capsys):
+    path1 = datastore.fetch('d043-200.tif')
+    path2 = datastore.fetch('subsubifds.tif')
+    tifftools.tiff_dump([path1, path2], json=True)
+    captured = capsys.readouterr()
+    info = json.loads(captured.out)
+    assert path1 in info
+    assert path2 in info
+    assert 'ifds' in info[path1]

@@ -10,7 +10,7 @@ from .datastore import datastore
 def test_bigtiff_bigendian(tmp_path, bigtiff, bigendian):
     path = datastore.fetch('d043-200.tif')
     dest = tmp_path / 'results.tif'
-    cmd = ['merge', str(dest), path]
+    cmd = ['merge', path, str(dest)]
     cmd.extend(bigtiff)
     cmd.extend(bigendian)
     tifftools.main(cmd)
