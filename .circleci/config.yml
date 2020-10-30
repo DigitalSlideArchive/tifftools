@@ -19,11 +19,10 @@ commands:
     steps:
       - run:
           name: Install Codecov client
-          command: pip install codecov
+          command: pip install codecov==2.1.9
       - run:
           name: Upload coverage
-          # Retry as codecov can be flaky
-          command: for i in $(seq 1 10); do [ $i -gt 1 ] && echo "retrying $i" && sleep 5; codecov --required --disable search pycov gcov --root project --file .tox/coverage/py_coverage.xml && s=0 && break || s=$?; done; (exit $s)
+          command: codecov --tries 10 --required --disable search pycov gcov --root project --file .tox/coverage/py_coverage.xml
 
 jobs:
   py36:
@@ -49,6 +48,14 @@ jobs:
       - checkout
       - tox:
           env: py38
+      - coverage
+  py39:
+    docker:
+      - image: python:3.9
+    steps:
+      - checkout
+      - tox:
+          env: py39
       - coverage
   pypy36:
     docker:
@@ -104,6 +111,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - py39:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - pypy36:
           filters:
             tags:
@@ -123,6 +137,7 @@ workflows:
             - py36
             - py37
             - py38
+            - py39
             - pypy36
             - lint_and_docs
           filters:
