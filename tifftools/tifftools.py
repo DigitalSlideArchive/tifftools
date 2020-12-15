@@ -437,15 +437,26 @@ def write_tag_data(dest, src, offsets, lengths, srclen):
     destOffsets = [0] * len(offsets)
     # We preserve the order of the chunks from the original file
     offsetList = sorted([(offset, idx) for idx, offset in enumerate(offsets)])
-    for offset, idx in offsetList:
-        if offset:
-            length = lengths[idx]
-            if not check_offset(srclen, offset, length):
-                continue
+    olidx = 0
+    while olidx < len(offsetList):
+        offset, idx = offsetList[olidx]
+        length = lengths[idx]
+        if offset and check_offset(srclen, offset, length):
             src.seek(offset)
             destOffsets[idx] = dest.tell()
+            # Group reads when possible; the biggest overhead is in the actual
+            # read call
+            while (olidx + 1 < len(offsetList) and
+                   offsetList[olidx + 1][0] == offsetList[olidx][0] + lengths[idx] and
+                   check_offset(srclen, destOffsets[idx] + lengths[idx],
+                                lengths[offsetList[olidx + 1][1]])):
+                destOffsets[offsetList[olidx + 1][1]] = destOffsets[idx] + lengths[idx]
+                olidx += 1
+                offset, idx = offsetList[olidx]
+                length += lengths[idx]
             while length:
                 data = src.read(min(length, COPY_CHUNKSIZE))
                 dest.write(data)
                 length -= len(data)
+        olidx += 1
     return destOffsets
