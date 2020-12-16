@@ -192,10 +192,12 @@ Datatype = TiffConstantSet('TiffDatatype', {
 })
 
 NewSubfileType = TiffConstantSet('TiffNewSubfileType', {
-    0: {'name': 'ReducedImage', 'bitfield': True, 'desc': 'Image is a reduced-resolution version of another image in this TIFF file'},
-    1: {'name': 'Page', 'bitfield': True, 'desc': 'Image is a single page of a multi-page image'},
-    2: {'name': 'Mask', 'bitfield': True, 'desc': 'Image defines a transparency mask for another image in this TIFF file'},
-    4: {'name': 'MRC', 'bitfield': True, 'desc': 'Mixed Raster Content'},
+    1: {'name': 'ReducedImage', 'bitfield': 1, 'desc': 'Image is a reduced-resolution version of another image in this TIFF file'},
+    2: {'name': 'Page', 'bitfield': 2, 'desc': 'Image is a single page of a multi-page image'},
+    4: {'name': 'Mask', 'bitfield': 4, 'desc': 'Image defines a transparency mask for another image in this TIFF file'},
+    # Macro is based on Aperio's use
+    8: {'name': 'Macro', 'bitfield': 8, 'desc': 'Image is an associated macro image'},
+    16: {'name': 'MRC', 'bitfield': 16, 'desc': 'Mixed Raster Content'},
 })
 
 OldSubfileType = TiffConstantSet('TiffOldSubfileType', {
@@ -283,13 +285,13 @@ PlanarConfig = TiffConstantSet('PlanarConfig', {
 })
 
 T4Options = TiffConstantSet('TiffT4Options', {
-    0: {'name': '2DEncoding', 'bitfield': True, 'desc': 'Set for two dimensional encoding'},
-    1: {'name': 'Uncompressed', 'bitfield': True, 'desc': 'Set if uncompressed mode is used'},
-    2: {'name': 'FillBits', 'bitfield': True, 'desc': 'Set if fill bits have been added'},
+    1: {'name': '2DEncoding', 'bitfield': 1, 'desc': 'Set for two dimensional encoding'},
+    2: {'name': 'Uncompressed', 'bitfield': 2, 'desc': 'Set if uncompressed mode is used'},
+    4: {'name': 'FillBits', 'bitfield': 4, 'desc': 'Set if fill bits have been added'},
 })
 
 T6Options = TiffConstantSet('TiffT6Options', {
-    1: {'name': 'Uncompressed', 'bitfield': True, 'desc': 'Set if uncompressed mode is used'},
+    2: {'name': 'Uncompressed', 'bitfield': 2, 'desc': 'Set if uncompressed mode is used'},
 })
 
 ResolutionUnit = TiffConstantSet('ResolutionUnit', {
