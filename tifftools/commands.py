@@ -91,7 +91,7 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
             if 'bitfield' in tag and val:
                 first = True
                 for bitfield in tag.bitfield:
-                    if val & bitfield.value:
+                    if (val & bitfield.bitfield) == bitfield.value:
                         dest.write('%s%s' % (' (' if first else ', ', bitfield))
                         first = False
                 dest.write(')')
