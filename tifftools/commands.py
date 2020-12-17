@@ -101,6 +101,12 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
         dest.write(' %s' % taginfo['data'])
     else:
         dest.write(' <%d> %r' % (len(taginfo['data']), taginfo['data'][:max]))
+        if len(taginfo['data']) > max:
+            dest.write(' ...')
+    if 'dump' in tag:
+        extra = tag.dump(taginfo['data'])
+        if extra:
+            dest.write(' (%s)' % extra)
     dest.write('\n')
 
 

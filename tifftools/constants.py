@@ -1,6 +1,8 @@
 # flake8: noqa 501
 # Disable flake8 line-length check (E501), it makes this file harder to read
 
+import struct
+
 from .exceptions import UnknownTagException
 
 
@@ -501,6 +503,19 @@ InteroperabilityTag = TiffConstantSet(TiffTag, {
     1: {'name': 'InteroperabilityIndex', 'datatype': Datatype.ASCII},
 })
 
+def EstimateJpegQuality(jpegTables):
+    try:
+        qtables = jpegTables.split(b'\xff\xdb', 1)[1]
+        qtables = qtables[2:struct.unpack('>H', qtables[:2])[0]]
+        # Only process the first table
+        if not (qtables[0] & 0xF):
+            values = struct.unpack('>64' + ('H' if qtables[0] else 'B'), qtables[1:1 + 64 * (2 if qtables[0] else 1)])
+            if values[58] < 100:
+                return int(100 - values[58] / 2)
+            return int(5000.0 / 2.5 / values[15])
+    except Exception:
+        pass
+
 Tag = TiffConstantSet(TiffTag, {
     254: {'name': 'NewSubfileType', 'altnames': {'SubfileType'}, 'datatype': Datatype.LONG, 'count': 1, 'bitfield': NewSubfileType, 'desc': 'A general indication of the kind of data contained in this subfile', 'default': 0},
     255: {'name': 'OldSubfileType', 'datatype': Datatype.SHORT, 'count': 1, 'enum': OldSubfileType, 'desc': 'A general indication of the kind of data contained in this subfile.  See NewSubfileType'},
@@ -570,7 +585,7 @@ Tag = TiffConstantSet(TiffTag, {
     344: {'name': 'XClipPathUnits', 'datatype': Datatype.DWORD},
     345: {'name': 'YClipPathUnits', 'datatype': Datatype.DWORD},
     346: {'name': 'Indexed', 'datatype': Datatype.SHORT, 'enum': Indexed, 'desc': 'Indexed images are images where the pixels do not represent color values, but rather an index', 'default': Indexed.NotIndexed},
-    347: {'name': 'JPEGTables', 'datatype': Datatype.UNDEFINED},
+    347: {'name': 'JPEGTables', 'datatype': Datatype.UNDEFINED, 'dump': lambda val: ('estimated quality: %d' % EstimateJpegQuality(val) if EstimateJpegQuality(val) else None)},
     351: {'name': 'OpiProxy'},
     400: {'name': 'GlobalParametersIFD', 'datatype': (Datatype.IFD, Datatype.IFD8)},
     401: {'name': 'ProfileType'},
