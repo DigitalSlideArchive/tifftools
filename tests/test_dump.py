@@ -1,5 +1,6 @@
 import io
 import json
+import os
 
 import pytest
 
@@ -96,3 +97,21 @@ def test_tiff_dump_multiple_json(capsys):
     assert path1 in info
     assert path2 in info
     assert 'ifds' in info[path1]
+
+
+def test_tiff_dump_jpeq_quality(capsys):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'good_jpeg.tif')
+    tifftools.tiff_dump(path)
+    captured = capsys.readouterr()
+    assert 'estimated quality' in captured.out
+
+
+@pytest.mark.parametrize('test_path', [
+    'bad_jpeg.tif',
+    'bad_jpeg2.tif',
+])
+def test_tiff_dump_jpeq_quality_bad(test_path, capsys):
+    path = os.path.join(os.path.dirname(__file__), 'data', test_path)
+    tifftools.tiff_dump(path)
+    captured = capsys.readouterr()
+    assert 'estimated quality' not in captured.out
