@@ -1,6 +1,9 @@
 # Change Log
 
 ## Unreleased
+- More tags
+
+## Version 1.2.0
 
 ### Improvements
 - Bitfields are now specified with a mask and are dumped more clearly (#38)

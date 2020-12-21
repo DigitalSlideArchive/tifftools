@@ -368,9 +368,12 @@ EXIFTag = TiffConstantSet(TiffTag, {
     34856: {'name': 'OECF', 'datatype': Datatype.UNDEFINED, 'desc': 'Optoelectric conversion factor'},
     34858: {'datatype': Datatype.SSHORT, 'name': 'TimeZoneOffset'},
     34859: {'datatype': Datatype.SHORT, 'name': 'SelfTimerMode'},
-    36864: {'name': 'ExifVersion', 'datatype': Datatype.UNDEFINED, 'count': 4, 'desc': ' Exif version'},
+    36864: {'name': 'SensitivityType'},
     34865: {'datatype': Datatype.LONG, 'name': 'StandardOutputSensitivity'},
     34866: {'datatype': Datatype.LONG, 'name': 'RecommendedExposureIndex'},
+    34867: {'name': 'ISOSPEED'},
+    34868: {'name': 'ISOSPEEDLATITUDEYYY'},
+    34869: {'name': 'ISOSPEEDLATITUDEZZZ'},
     36867: {'name': 'DateTimeOriginal', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of original data'},
     36868: {'name': 'DateTimeDigitized', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of digital data'},
     34869: {'datatype': Datatype.LONG, 'name': 'ISOSpeedLatitudezzz'},
@@ -402,7 +405,7 @@ EXIFTag = TiffConstantSet(TiffTag, {
     37520: {'name': 'SubSecTime', 'datatype': Datatype.ASCII, 'desc': ' DateTime subseconds'},
     37521: {'name': 'SubSecTimeOriginal', 'datatype': Datatype.ASCII, 'desc': ' DateTimeOriginal subseconds'},
     37522: {'name': 'SubSecTimeDigitized', 'datatype': Datatype.ASCII, 'desc': ' DateTimeDigitized subseconds'},
-    37888: {'datatype': Datatype.SRATIONAL, 'name': 'AmbientTemperature'},
+    37888: {'datatype': Datatype.SRATIONAL, 'name': 'AmbientTemperature', 'altnames': {'Temperature'}},
     37889: {'datatype': Datatype.RATIONAL, 'name': 'Humidity'},
     37890: {'datatype': Datatype.RATIONAL, 'name': 'Pressure'},
     37891: {'datatype': Datatype.SRATIONAL, 'name': 'WaterDepth'},
@@ -497,6 +500,7 @@ GPSTag = TiffConstantSet(TiffTag, {
     28: {'name': 'GPSAreaInformation', 'datatype': Datatype.UNDEFINED, 'desc': 'Name of GPS area'},
     29: {'name': 'GPSDateStamp', 'datatype': Datatype.ASCII, 'count': 11, 'desc': 'GPS date'},
     30: {'name': 'GPSDifferential', 'datatype': Datatype.SHORT, 'count': 1, 'desc': 'GPS differential correction'},
+    31: {'name': 'GPSPositioningError', 'desc': 'Indicates horizontal positioning errors in meters'},
 })
 
 InteroperabilityTag = TiffConstantSet(TiffTag, {
@@ -738,8 +742,10 @@ Tag = TiffConstantSet(TiffTag, {
     50832: {'name': 'ASSHOTPREPROFILEMATRIX'},
     50833: {'name': 'CURRENTICCPROFILE'},
     50834: {'name': 'CURRENTPREPROFILEMATRIX'},
+    50844: {'name': 'RPCCOEFFICIENT'},
     50908: {'name': 'TIFF_RSID'},
     50909: {'name': 'GEO_METADATA'},
+    50933: {'name': 'TIFFTAG_EXTRACAMERAPROFILES'},
     # Hamamatsu tags
     65420: {'name': 'NDPI_FORMAT_FLAG', 'source': 'hamamatsu'},
     65421: {'name': 'NDPI_SOURCELENS', 'source': 'hamamatsu'},
