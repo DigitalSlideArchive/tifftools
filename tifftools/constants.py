@@ -153,7 +153,7 @@ def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
     :param upperLimit: if True, don't allow new tags with values >= 65536.
         Such tags are used for signaling in libtiff, so this can optionally be
         allowed.
-   :param **tagOptions: if tag needs to be created and this is specified, add
+    :param **tagOptions: if tag needs to be created and this is specified, add
         this as part of creating the tag.
     :returns: a TiffConstant.
     """
