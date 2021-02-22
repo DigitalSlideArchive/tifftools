@@ -341,6 +341,9 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                 else:
                     data = write_tag_data(
                         dest, src, data, [tag.bytecounts] * count, ifd['size'])
+                if not bigtiff and any(val for val in data if val >= 0x100000000):
+                    raise MustBeBigTiffException(
+                        'The file is large enough it must be in bigtiff format.')
                 taginfo = taginfo.copy()
                 taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
             if not bigtiff and Datatype[taginfo['datatype']] in {Datatype.LONG8, Datatype.SLONG8}:
