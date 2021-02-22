@@ -1,7 +1,12 @@
 # Change Log
 
-## Unreleased
-- More tags
+## Version 1.2.1
+
+### Improvements
+- More tags (#42)
+
+### Bug fixes
+- Better detect the need to write bigtiff files (#43)
 
 ## Version 1.2.0
 
