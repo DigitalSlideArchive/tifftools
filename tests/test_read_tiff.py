@@ -57,3 +57,9 @@ def test_read_tiff_warning_file(test_path, msg, caplog):
     with caplog.at_level(logging.WARNING):
         tifftools.read_tiff(path)
     assert msg in caplog.text
+
+
+def test_read_tiff_bad_unicode():
+    path = os.path.join(os.path.dirname(__file__), 'data', 'bad_unicode.tif')
+    info = tifftools.read_tiff(path)
+    assert isinstance(info['ifds'][0]['tags'][tifftools.Tag.Artist.value]['data'], bytes)

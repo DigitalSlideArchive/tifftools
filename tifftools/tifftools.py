@@ -224,7 +224,10 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
             taginfo['data'] = list(struct.unpack(
                 bom + Datatype[taginfo['datatype']].pack * taginfo['count'], rawdata))
         elif Datatype[taginfo['datatype']] == Datatype.ASCII:
-            taginfo['data'] = rawdata.rstrip(b'\x00').decode()
+            try:
+                taginfo['data'] = rawdata.rstrip(b'\x00').decode()
+            except UnicodeDecodeError:
+                taginfo['data'] = rawdata
             # TODO: Handle null-separated lists
         else:
             taginfo['data'] = rawdata
