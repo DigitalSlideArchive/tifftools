@@ -1,12 +1,17 @@
 # Change Log
 
+## Version 1.2.2
+
+### Bug fixes
+- Better handle invalid unicode (#46)
+
 ## Version 1.2.1
 
 ### Improvements
 - More tags (#42)
 
 ### Bug fixes
-- Better detect the need to write bigtiff files (#43)
+- Better detect the need to write bigtiff files (#45)
 
 ## Version 1.2.0
 
