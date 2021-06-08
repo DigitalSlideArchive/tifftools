@@ -767,7 +767,7 @@ Tag = TiffConstantSet(TiffTag, {
     65439: {'name': 'NDPI_FocusPoints', 'source': 'tifffile.py'},
     65440: {'name': 'NDPI_FocusPointRegions', 'source': 'tifffile.py'},
     65441: {'name': 'NDPI_CaptureMode', 'source': 'tifffile.py'},
-    65442: {'name': 'NDPI_NDPSN', 'altnames': {'NDPI_ScannerSerialNumber'}, 'source': 'hamamatsu'},  # not offical name
+    65442: {'name': 'NDPI_NDPSN', 'altnames': {'NDPI_ScannerSerialNumber'}, 'source': 'hamamatsu'},  # not official name
     65444: {'name': 'NDPI_JpegQuality', 'source': 'tifffile.py'},
     65445: {'name': 'NDPI_RefocusInterval', 'source': 'tifffile.py'},
     65446: {'name': 'NDPI_FocusOffset', 'source': 'tifffile.py'},

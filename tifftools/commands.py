@@ -50,7 +50,7 @@ def tiff_merge(*args, **kwargs):
 
 def tiff_concat(source, output, overwrite=False, **kwargs):
     """
-    Concatenate a list of soruce files into a single output file.
+    Concatenate a list of source files into a single output file.
 
     :param source: a list of input paths
     :param output: the output path
@@ -212,7 +212,7 @@ def _make_split_name(prefix, num, neededChars):
 
     :param prefix: the prefix or None.
     :param num: the zero-based index.
-    :param neededChars: the number of characters to appened before the file
+    :param neededChars: the number of characters to append before the file
         extension.
     :returns: a file path.
     """
@@ -235,7 +235,7 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
         z, and always append enough characters to be unique.
     :param subifds: if True, split all subifds into separate files.  Note that
         only the SubIFD tag is so split out (not, for instance, EXIF IFD).
-    :param overwrite: if False, throw an error if any of the ouput paths
+    :param overwrite: if False, throw an error if any of the output paths
         already exist.
     """
     info = read_tiff(source)
@@ -392,7 +392,7 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
     :param setfrom: a list of tuples of the form (tag, tifffile), where tag is
         of the form <tag name or number>[,<ifd-#>[,...]].  The value will have
         the same datatype as the tifffile it is read from.
-    :param overwrite: if False, throw an error if any of the ouput paths
+    :param overwrite: if False, throw an error if any of the output paths
         already exist.
     """
     info = read_tiff(source)
@@ -433,7 +433,7 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
     :param output: the path to write.  If not specified, rewrite the source
         path.  If the output is the same as the source, a temporary file is
         written and then the source file is updated.
-    :param overwrite: if False, throw an error if any of the ouput paths
+    :param overwrite: if False, throw an error if any of the output paths
         already exist.
     :param setlist: a list of tuples of the form (tag, value), where tag is of
         the form <tag name or number>[:<datatype>][,<ifd-#>[,...]] and, if the
