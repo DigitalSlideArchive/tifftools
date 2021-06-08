@@ -25,9 +25,9 @@ def OpenPathOrFobj(pathOrObj, mode='rb'):
 
     :param pathOrObj: one of a file path, pathlib Path, filelike-object, or
         None or '-'.
-    :parm mode: the mode to open a path or temporary file as needed.  This
+    :param mode: the mode to open a path or temporary file as needed.  This
         won't affect a seekable filelike-object.  If '-' or None is specified,
-        the presence of 'w' determines if stdout ot stdin is opened (always in
+        the presence of 'w' determines if stdout or stdin is opened (always in
         binary mode).
     :yields: a seekable filelike object.
     """

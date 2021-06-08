@@ -302,7 +302,7 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
 
 def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     """
-    Write an IFD to a TIFF file.  This copies iamge data from other tiff files.
+    Write an IFD to a TIFF file.  This copies image data from other tiff files.
 
     :param dest: the open file handle to write.
     :param bom: eithter '<' or '>' for using struct to encode values based on
