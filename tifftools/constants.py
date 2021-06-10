@@ -74,10 +74,7 @@ class TiffTag(TiffConstant):
         datatypes = self.get('datatype', None)
         if not isinstance(datatypes, tuple):
             datatypes = (datatypes, )
-        for datatype in datatypes:
-            if datatype in (Datatype.IFD, Datatype.IFD8):
-                return True
-        return False
+        return any(datatype in (Datatype.IFD, Datatype.IFD8) for datatype in datatypes)
 
 
 class TiffConstantSet(object):
@@ -232,6 +229,7 @@ Compression = TiffConstantSet('TiffCompression', {
     32946: {'name': 'Deflate', 'desc': 'Deflate compression'},
     32947: {'name': 'DCS', 'desc': 'Kodak DCS encoding'},
     33003: {'name': 'JP2kYCbCr', 'desc': 'JPEG 2000 with YCbCr format as used by Aperio', 'lossy': True},
+    33004: {'name': 'JP2kLossy', 'desc': 'JPEG 2000 with lossy compression as used by Bioformats', 'lossy': True},
     33005: {'name': 'JP2kRGB', 'desc': 'JPEG 2000 with RGB format as used by Aperio', 'lossy': True},
     34661: {'name': 'JBIG', 'desc': 'ISO JBIG'},
     34676: {'name': 'SGILOG', 'desc': 'SGI Log Luminance RLE'},
