@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2.3
+
+### Improvements
+- More constants (#48)
+
 ## Version 1.2.2
 
 ### Bug fixes
