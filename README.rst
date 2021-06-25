@@ -57,24 +57,47 @@ Library Functions
 Purpose
 =======
 
-tifftools provides a library and a command line program for maniplulating TIFF files.  It can split multiple images apart, merge images together, set any tag in any IFD, and dump all IFDs and tags in a single command.  It only uses python standard library modules, and is therefore widely compatible.
+tifftools provides a library and a command line program for maniplulating TIFF
+files.  It can split multiple images apart, merge images together, set any tag
+in any IFD, and dump all IFDs and tags in a single command.  It only uses
+python standard library modules, and is therefore widely compatible.
 
 Rationale
 ---------
 
-There was a need to combine images from multiple TIFF files without altering the image data or losing any tag information.  Further, when changing tag values, it was essential that the old values were fully removed from the output.
+There was a need to combine images from multiple TIFF files without altering
+the image data or losing any tag information.  Further, when changing tag
+values, it was essential that the old values were fully removed from the
+output.
 
-The command line tools associated with libtiff are commonly used for similar purposes.  The libtiff command tools have significant limitations: ``tiffdump`` and ``tiffinfo`` require multiple commands to see information from all IFDs.  ``tiffset`` does not remove data from a file; rather it appends to the file to only reference new data, leaving the old values inside the file.  ``tiffsplit`` doesn't keep tags it doesn't recognize, loosing data.  ``tiffcp`` always reencodes images and will fail for compression types it does not know.
+The command line tools associated with libtiff are commonly used for similar
+purposes.  The libtiff command tools have significant limitations: ``tiffdump``
+and ``tiffinfo`` require multiple commands to see information from all IFDs.
+``tiffset`` does not remove data from a file; rather it appends to the file to
+only reference new data, leaving the old values inside the file.  ``tiffsplit``
+doesn't keep tags it doesn't recognize, loosing data.  ``tiffcp`` always
+reencodes images and will fail for compression types it does not know.
 
-Likewise, there is a wide variety of EXIF tools.  For the most part, these only alter tags, usually by appending to the existing file.  ImageMagick's ``convert`` command also recompresses images as it combines them.
+Likewise, there is a wide variety of EXIF tools.  For the most part, these only
+alter tags, usually by appending to the existing file.  ImageMagick's
+``convert`` command also recompresses images as it combines them.
 
-Many programs deal with both classic and BigTIFF.  Some will start writing a classic TIFF, but leave a small amount of unused space just after the file header.  If the file exceeds 4Gb, parts of the file are rewritten to convert it to a BigTIFF file, leaving small amounts of abandoned data within the file.
+Many programs deal with both classic and BigTIFF.  Some will start writing a
+classic TIFF, but leave a small amount of unused space just after the file
+header.  If the file exceeds 4Gb, parts of the file are rewritten to convert it
+to a BigTIFF file, leaving small amounts of abandoned data within the file.
 
-``tifftools`` fills this need.  All tags are copied, even if unknown.  Files are always rewritten so that there is never abandoned data inside the file.  ``tifftools dump`` shows information on all IFDs and tags.  Many of the command line options are directly inspired from libtiff.
+``tifftools`` fills this need.  All tags are copied, even if unknown.  Files
+are always rewritten so that there is never abandoned data inside the file.
+``tifftools dump`` shows information on all IFDs and tags.  Many of the command
+line options are directly inspired from libtiff.
 
-``tifftools`` does NOT compress or decompress any image data.  This is not an image viewer.  If you need to recompress an image or otherwise manipulate pixel data, use libtiff or another library.
+``tifftools`` does NOT compress or decompress any image data.  This is not an
+image viewer.  If you need to recompress an image or otherwise manipulate pixel
+data, use libtiff or another library.
 
-As an explicit example, with libtiff's ``tiffset``, tag data just gets dereferenced and is still in the file:
+As an explicit example, with libtiff's ``tiffset``, tag data just gets
+dereferenced and is still in the file:
 
 .. code-block:: bash
 
@@ -104,44 +127,44 @@ Whereas, with ``tifftools``:
     Binary file photograph.tif matches
     $ tifftools set -y photograph.tif -s ImageDescription "public phrase"
     $ tiffinfo photograph.tif | grep ImageDescription
-      ImageDescription: public phrase
-    $ grep 'secret' photograph.tif || echo 'not present'
-    not present
+      ImageDescription: public phrase $ grep 'secret' photograph.tif || echo
+      'not present' not present
 
 TIFF File Structure
 ===================
 
-TIFF Files consist of one or more IFDs (Image File Directories).  These can
-be located anywhere within the file, and are referenced by their absolute
-position within the file.  IFDs can refer to image data but they can also
-contain a collection of metadata (for instance, EXIF or GPS data).  Small
-data values are stored directly in the IFD.  Bigger data values (such as
-image data, longer string, or lists of numbers) are referenced by the IFD and
-are stored elsewhere in the file.
+TIFF Files consist of one or more IFDs (Image File Directories).  These can be
+located anywhere within the file, and are referenced by their absolute position
+within the file.  IFDs can refer to image data; they can also contain a
+collection of metadata (for instance, EXIF or GPS data).  Small data values are
+stored directly in the IFD.  Bigger data values (such as image data, longer
+strings, or lists of numbers) are referenced by the IFD and are stored
+elsewhere in the file.
 
 In the simple case, a TIFF file may have a list of IFDs, each one referencing
-the next.  However, a complex TIFF file, such as those used by some
-Whole-Slide Image (WSI) microscopy systems, can have IFDs organized in a
-branching structure, where some IFDs are in a list and some reference SubIFDs
-with additional images.
+the next.  However, a complex TIFF file, such as those used by some Whole-Slide
+Image (WSI) microscopy systems, can have IFDs organized in a branching
+structure, where some IFDs are in a list and some reference SubIFDs with
+additional images.
 
 TIFF files can have their primary data stored in either little-endian or
-big-endian.  Offsets to data are store as absolute numbers inside a TIFF
-file.  There are two variations: "classic" and "BigTIFF" which use 32-bits
+big-endian format.  Offsets to data are stored as absolute numbers inside a
+TIFF file.  There are two variations: "classic" and "BigTIFF" which use 32-bits
 and 64-bits for these offsets, respectively.  If the file size exceeds 4 Gb or
 uses 64-bit integer datatypes, it must be written as a BigTIFF.
 
 Limitations
 ===========
 
-Unknown tags that are offsets and have a datatype other than IFD or IFD8
-won't be copied properly, as it is impossible to distinguish integer data
-from offsets given LONG or LONG8 datatypes.  This can be remedied by
-defining a new ``TiffConstant`` record which contains a ``bytecounts`` entry
-to instruct whether the offsets refer to fixed length data or should get the
-length of data from another tag.
+Unknown tags that are offsets and have a datatype other than IFD or IFD8 won't
+be copied properly, as it is impossible to distinguish integer data from
+offsets given LONG or LONG8 datatypes.  This can be remedied by defining a new
+``TiffConstant`` record which contains a ``bytecounts`` entry to instruct
+whether the offsets refer to fixed length data or should get the length of data
+from another tag.
 
-Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's ``tiffset`` and most EXIF tools.
+Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's
+``tiffset`` and most EXIF tools.
 
 
 .. |build-status| image:: https://circleci.com/gh/DigitalSlideArchive/tifftools.png?style=shield
