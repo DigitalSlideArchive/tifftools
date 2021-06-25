@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pytest
@@ -33,22 +34,24 @@ def test_split_sub_subifds(tmp_path):
     assert len(info['ifds']) == 1
 
 
-@pytest.mark.parametrize('test_path', [
-    'aperio_jp2k.svs',
-    'hamamatsu.ndpi',
-    'philips.ptif',
-    'sample.subifd.ome.tif',
-    'd043-200.tif',
-    'subsubifds.tif',
+@pytest.mark.parametrize('test_path,no_warnings', [
+    ('aperio_jp2k.svs', True),
+    ('hamamatsu.ndpi', False),
+    ('philips.ptif', True),
+    ('sample.subifd.ome.tif', True),
+    ('d043-200.tif', True),
+    ('subsubifds.tif', True),
 ])
-def test_split_and_merge(test_path, tmp_path):
+def test_split_and_merge(test_path, no_warnings, tmp_path, caplog):
     path = datastore.fetch(test_path)
     destpath1 = tmp_path / ('initial' + os.path.splitext(test_path)[1])
-    tifftools.tiff_concat([path], destpath1)
-    tifftools.tiff_split(path, tmp_path / 'test')
-    components = sorted([tmp_path / p for p in os.listdir(tmp_path) if p.startswith('test')])
-    destpath2 = tmp_path / ('merged' + os.path.splitext(test_path)[1])
-    tifftools.tiff_merge(components, destpath2)
+    with caplog.at_level(logging.WARNING):
+        tifftools.tiff_concat([path], destpath1)
+        tifftools.tiff_split(path, tmp_path / 'test')
+        components = sorted([tmp_path / p for p in os.listdir(tmp_path) if p.startswith('test')])
+        destpath2 = tmp_path / ('merged' + os.path.splitext(test_path)[1])
+        tifftools.tiff_merge(components, destpath2)
+    assert not no_warnings or not caplog.text
     chunksize = 1024 ** 2
     with open(destpath1, 'rb') as f1, open(destpath2, 'rb') as f2:
         while True:

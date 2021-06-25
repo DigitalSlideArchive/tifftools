@@ -454,7 +454,7 @@ def write_tag_data(dest, src, offsets, lengths, srclen):
             # read call
             while (olidx + 1 < len(offsetList) and
                    offsetList[olidx + 1][0] == offsetList[olidx][0] + lengths[idx] and
-                   check_offset(srclen, destOffsets[idx] + lengths[idx],
+                   check_offset(srclen, offsetList[olidx + 1][0],
                                 lengths[offsetList[olidx + 1][1]])):
                 destOffsets[offsetList[olidx + 1][1]] = destOffsets[idx] + lengths[idx]
                 olidx += 1
