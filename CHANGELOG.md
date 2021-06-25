@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2.4
+
+### Bug fixes
+- Fix checking offsets in merging multiple files (#49)
+
 ## Version 1.2.3
 
 ### Improvements
