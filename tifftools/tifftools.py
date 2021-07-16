@@ -349,8 +349,16 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                         'The file is large enough it must be in bigtiff format.')
                 taginfo = taginfo.copy()
                 taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
+
             if not bigtiff and Datatype[taginfo['datatype']] in {Datatype.LONG8, Datatype.SLONG8}:
-                raise MustBeBigTiffException('There are datatypes that require bigtiff format.')
+                if Datatype[taginfo['datatype']] == Datatype.LONG8 and all(
+                        x < 2**32 for x in taginfo['data']):
+                    taginfo['datatype'] = Datatype.LONG.value
+                elif Datatype[taginfo['datatype']] == Datatype.SLONG8 and all(
+                        abs(x) < 2**31 for x in taginfo['data']):
+                    taginfo['datatype'] = Datatype.SLONG.value
+                else:
+                    raise MustBeBigTiffException('There are datatypes that require bigtiff format.')
             if Datatype[taginfo['datatype']].pack:
                 pack = Datatype[taginfo['datatype']].pack
                 count //= len(pack)
