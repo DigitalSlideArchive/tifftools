@@ -48,12 +48,38 @@ def test_write_bigtiff_from_datatype(tmp_path):
     info = tifftools.read_tiff(path)
     info['ifds'][0]['tags'][23456] = {
         'datatype': tifftools.Datatype.LONG8,
-        'data': [8],
+        'data': [2**33],
     }
     destpath = tmp_path / 'sample.tiff'
     tifftools.write_tiff(info, destpath)
     destinfo = tifftools.read_tiff(destpath)
     assert destinfo['bigtiff'] is True
+
+
+def test_write_downgrade_long8(tmp_path):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
+    info = tifftools.read_tiff(path)
+    info['ifds'][0]['tags'][23456] = {
+        'datatype': tifftools.Datatype.LONG8,
+        'data': [8],
+    }
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    destinfo = tifftools.read_tiff(destpath)
+    assert destinfo['bigtiff'] is False
+
+
+def test_write_downgrade_slong8(tmp_path):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
+    info = tifftools.read_tiff(path)
+    info['ifds'][0]['tags'][23456] = {
+        'datatype': tifftools.Datatype.SLONG8,
+        'data': [8],
+    }
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    destinfo = tifftools.read_tiff(destpath)
+    assert destinfo['bigtiff'] is False
 
 
 def test_write_bigtiff_with_long_data(tmp_path):
