@@ -349,6 +349,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                         'The file is large enough it must be in bigtiff format.')
                 taginfo = taginfo.copy()
                 taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
+
             if not bigtiff and Datatype[taginfo['datatype']] in {Datatype.LONG8, Datatype.SLONG8}:
                 raise MustBeBigTiffException('There are datatypes that require bigtiff format.')
             if Datatype[taginfo['datatype']].pack:
@@ -367,6 +368,9 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                     subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
                 tagrecord += data + b'\x00' * (tagdatalen - len(data))
             else:
+                # word alignment
+                if dest.tell() % 2:
+                    dest.write(b'\x00')
                 if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
                 if not bigtiff and dest.tell() >= ptrmax:

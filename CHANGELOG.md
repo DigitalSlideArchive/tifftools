@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 1.2.6
+
+### Improvements
+- Align IFD values word boundaries (#54)
+- Output small tiffs in more cases (#53)
+
 ## Version 1.2.5
 
 ### Improvements
