@@ -375,6 +375,9 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
                     subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
                 tagrecord += data + b'\x00' * (tagdatalen - len(data))
             else:
+                # word alignment
+                if dest.tell() % 2:
+                    dest.write(b'\x00')
                 if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = dest.tell()
                 if not bigtiff and dest.tell() >= ptrmax:
