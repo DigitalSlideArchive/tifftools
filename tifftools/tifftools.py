@@ -379,6 +379,10 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
         raise MustBeBigTiffException(
             'The file is large enough it must be in bigtiff format.')
     pos = dest.tell()
+    # ifds are expected to be on word boundaries
+    if pos % 2:
+        dest.write(b'\x00')
+        pos = dest.tell()
     dest.seek(ifdPtr)
     dest.write(struct.pack(bom + ptrpack, pos))
     dest.seek(0, os.SEEK_END)
