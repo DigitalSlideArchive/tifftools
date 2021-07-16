@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2.5
+
+### Improvements
+- IFDs are output on word boundaries (#52)
+
 ## Version 1.2.4
 
 ### Bug fixes
