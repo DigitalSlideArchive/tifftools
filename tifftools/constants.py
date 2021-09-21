@@ -3,7 +3,7 @@
 
 import struct
 
-from .exceptions import UnknownTagException
+from .exceptions import UnknownTagError
 
 
 class TiffConstant(int):
@@ -166,7 +166,7 @@ def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
     if tagSet and value in tagSet:
         return tagSet[value]
     if value < 0 or (upperLimit and value >= 65536):
-        raise UnknownTagException('Unknown tag %s' % key)
+        raise UnknownTagError('Unknown tag %s' % key)
     tagClass = tagSet._setClass if tagSet else TiffConstant
     return tagClass(value, tagOptions)
 
