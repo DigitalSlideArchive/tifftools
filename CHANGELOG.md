@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2.7
+
+### Improvements
+- Rename Exceptions to Errors (#56)
+
 ## Version 1.2.6
 
 ### Improvements
