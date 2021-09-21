@@ -4,7 +4,8 @@ from pkg_resources import get_distribution
 
 from .commands import main, tiff_concat, tiff_dump, tiff_info, tiff_merge, tiff_set, tiff_split
 from .constants import Datatype, Tag, TiffDatatype, TiffTag
-from .exceptions import MustBeBigTiffException, TifftoolsException, UnknownTagException
+from .exceptions import (MustBeBigTiffError, MustBeBigTiffException, TifftoolsError,
+                         TifftoolsException, UnknownTagError, UnknownTagException)
 from .tifftools import read_tiff, write_tiff
 
 __version__ = get_distribution(__name__).version
@@ -19,6 +20,9 @@ __all__ = (
     'Datatype', 'TiffDatatype',
     'Tag', 'TiffTag',
 
+    'TifftoolsError',
+    'UnknownTagError',
+    'MustBeBigTiffError',
     'TifftoolsException',
     'UnknownTagException',
     'MustBeBigTiffException',

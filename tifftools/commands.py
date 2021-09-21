@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 from .constants import Datatype, Tag, get_or_create_tag
-from .exceptions import TifftoolsException
+from .exceptions import TifftoolsError
 from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class ThrowOnLevelHandler(logging.NullHandler):
     def handle(self, record):
-        raise TifftoolsException(record.getMessage())
+        raise TifftoolsError(record.getMessage())
 
 
 def _apply_flags_to_ifd(ifd, bigtiff=None, bigendian=None, **kwargs):
@@ -246,7 +246,7 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
         for idx in range(numOutput):
             outputPath = _make_split_name(prefix, idx, neededChars)
             if os.path.exists(outputPath):
-                raise TifftoolsException('File already exists: %s' % outputPath)
+                raise TifftoolsError('File already exists: %s' % outputPath)
     for idx, ifd in enumerate(_iterate_ifds(info['ifds'], subifds=subifds)):
         outputPath = _make_split_name(prefix, idx, neededChars)
         if subifds and int(Tag.SubIFD) in ifd['tags']:
@@ -348,10 +348,10 @@ def _tagspec_to_ifd(tagspec, info, value=None):
     if ':' in tagspec:
         tagspec, datatype = tagspec.split(':', 1)
         if datatype not in Datatype:
-            raise TifftoolsException('Unknown datatype %s' % datatype)
+            raise TifftoolsError('Unknown datatype %s' % datatype)
         datatype = Datatype[datatype]
         if value is not None and datatype not in valueTypes:
-            raise TifftoolsException(
+            raise TifftoolsError(
                 'Value %r cannot be converted to datatype %s' % (value, datatype))
     tag = get_or_create_tag(tagspec, tagSet, **({'datatype': datatype} if datatype else {}))
     if 'datatype' in tag:
@@ -449,7 +449,7 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
     if output is None:
         output = source
     if os.path.exists(output) and not overwrite:
-        raise TifftoolsException('File already exists: %s' % output)
+        raise TifftoolsError('File already exists: %s' % output)
     if os.path.realpath(source) == os.path.realpath(output) and source != '-':
         with tempfile.TemporaryDirectory('tifftools') as tmpdir:
             output = os.path.join(tmpdir, 'output.tiff')

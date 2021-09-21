@@ -1,10 +1,15 @@
-class TifftoolsException(Exception):
+class TifftoolsError(Exception):
     pass
 
 
-class UnknownTagException(TifftoolsException):
+class UnknownTagError(TifftoolsError):
     pass
 
 
-class MustBeBigTiffException(TifftoolsException):
+class MustBeBigTiffError(TifftoolsError):
     pass
+
+
+TifftoolsException = TifftoolsError
+UnknownTagException = UnknownTagError
+MustBeBigTiffException = MustBeBigTiffError
