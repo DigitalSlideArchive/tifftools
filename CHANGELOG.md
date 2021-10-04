@@ -1,5 +1,8 @@
 # Change Log
 
+### Improvements
+- When creating some tags, return a TiffTag rather than TiffConstant (#57)
+
 ## Version 1.2.7
 
 ### Improvements

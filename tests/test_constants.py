@@ -56,7 +56,7 @@ def test_get_or_create_tag():
         40000, tifftools.Tag, datatype=tifftools.Datatype.ASCII
     ).datatype == tifftools.Datatype.ASCII
     assert get_or_create_tag(40000).name == '40000'
-    assert not isinstance(get_or_create_tag(40000), tifftools.TiffTag)
+    assert isinstance(get_or_create_tag(40000), tifftools.TiffTag)
 
 
 def test_get_or_create_tag_limits():

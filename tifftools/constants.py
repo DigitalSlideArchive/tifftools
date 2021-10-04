@@ -167,7 +167,7 @@ def get_or_create_tag(key, tagSet=None, upperLimit=True, **tagOptions):
         return tagSet[value]
     if value < 0 or (upperLimit and value >= 65536):
         raise UnknownTagError('Unknown tag %s' % key)
-    tagClass = tagSet._setClass if tagSet else TiffConstant
+    tagClass = tagSet._setClass if tagSet else TiffTag
     return tagClass(value, tagOptions)
 
 
