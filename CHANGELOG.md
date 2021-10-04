@@ -1,7 +1,10 @@
 # Change Log
 
+## Version 1.2.8
+
 ### Improvements
 - When creating some tags, return a TiffTag rather than TiffConstant (#57)
+- Added new JPEGXL compression tag (#58)
 
 ## Version 1.2.7
 
