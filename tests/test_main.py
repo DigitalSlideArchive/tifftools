@@ -13,7 +13,7 @@ from .datastore import datastore
     ([], 'subcommands', None, None),
     (['--help'], 'subcommands', SystemExit, None),
     (['info'], 'usage', SystemExit, None),
-    (['info', '--help'], 'optional arguments', SystemExit, None),
+    (['info', '--help'], 'option', SystemExit, None),
     (['dump', '<input>'], 'Directory', None, 'aperio_jp2k.svs'),
     (['info', 'nosuchfile'], 'No such file', None, None),
 ])
@@ -34,7 +34,7 @@ def test_main(cmd_params, check_text, catch_exc, test_path, capsys):
     ([], 'subcommands', None, None),
     (['--help'], 'subcommands', SystemExit, None),
     (['info'], 'usage', SystemExit, None),
-    (['info', '--help'], 'optional arguments', SystemExit, None),
+    (['info', '--help'], 'option', SystemExit, None),
     (['dump', '<input>'], 'Directory', None, 'aperio_jp2k.svs'),
     (['info', 'nosuchfile'], 'No such file', SystemExit, None),
     (['info', os.path.join(

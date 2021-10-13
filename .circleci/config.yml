@@ -57,6 +57,14 @@ jobs:
       - tox:
           env: py39
       - coverage
+  py310:
+    docker:
+      - image: python:3.10
+    steps:
+      - checkout
+      - tox:
+          env: py310
+      - coverage
   pypy36:
     docker:
       - image: pypy:3.6
@@ -126,6 +134,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - py310:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - pypy36:
           filters:
             tags:
@@ -153,6 +168,7 @@ workflows:
             - py37
             - py38
             - py39
+            - py310
             - pypy36
             - pypy37
             - lint_and_docs
