@@ -49,7 +49,7 @@ class TiffConstant(int):
                 pass
         except TypeError:
             return False
-        return self.name.lower() == other.lower()
+        return self.name.upper() == other.upper()
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -73,8 +73,8 @@ class TiffTag(TiffConstant):
     def isIFD(self):
         datatypes = self.get('datatype', None)
         if not isinstance(datatypes, tuple):
-            datatypes = (datatypes, )
-        return any(datatype in (Datatype.IFD, Datatype.IFD8) for datatype in datatypes)
+            return datatypes == Datatype.IFD or datatypes == Datatype.IFD8
+        return Datatype.IFD in datatypes or Datatype.IFD8 in datatypes
 
 
 class TiffConstantSet(object):
@@ -99,11 +99,11 @@ class TiffConstantSet(object):
         for k, v in setDict.items():
             entry = setClass(k, v)
             entries[k] = entry
-            names[entry.name.lower()] = entry
+            names[entry.name.upper()] = entry
             names[str(int(entry))] = entry
             if 'altnames' in v:
                 for altname in v['altnames']:
-                    names[altname.lower()] = entry
+                    names[altname.upper()] = entry
         self.__dict__.update(names)
         self._entries = entries
         self._setClass = setClass
@@ -116,9 +116,10 @@ class TiffConstantSet(object):
             key = str(int(key, 0))
         except (ValueError, TypeError):
             pass
-        if key.lower() in self.__dict__:
-            return self.__dict__[key.lower()]
-        raise AttributeError("'%s' object has no attribute '%s'" % (type(self).__name__, key))
+        try:
+            return self.__dict__[key.upper()]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'" % (type(self).__name__, key))
 
     def __getitem__(self, key):
         if isinstance(key, TiffConstant):
