@@ -54,6 +54,19 @@ Library Functions
 
 - EXIFTag, GPSTag, etc.
 
+Installation
+============
+
+``tifftools`` is available on PyPI and conda-forge. 
+
+To install with pip from PyPI::
+
+    pip install tifftools
+
+To install with conda::
+
+    conda install -c conda-forge tifftools
+
 Purpose
 =======
 
