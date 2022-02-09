@@ -43,6 +43,7 @@ setup(
     ],
     description='Pure python tiff tools to handle all tags and IFDs.',
     install_requires=[
+        'importlib-metadata ; python_version < "3.8"',
     ],
     license='Apache Software License 2.0',
     long_description=readme,

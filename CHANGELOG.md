@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2.10
+
+### Improvements
+- Don't use pkg_resources for finding version ([#62](../../pull/62))
+
 ## Version 1.2.9
 
 ### Improvements
