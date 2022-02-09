@@ -1,14 +1,16 @@
 import logging
 
-from pkg_resources import get_distribution
-
 from .commands import main, tiff_concat, tiff_dump, tiff_info, tiff_merge, tiff_set, tiff_split
 from .constants import Datatype, Tag, TiffDatatype, TiffTag
 from .exceptions import (MustBeBigTiffError, MustBeBigTiffException, TifftoolsError,
                          TifftoolsException, UnknownTagError, UnknownTagException)
 from .tifftools import read_tiff, write_tiff
 
-__version__ = get_distribution(__name__).version
+try:
+    from importlib.metadata import version as _importlib_version
+except ImportError:
+    from importlib_metadata import version as _importlib_version
+__version__ = _importlib_version(__name__)
 
 
 logger = logging.getLogger(__name__)
