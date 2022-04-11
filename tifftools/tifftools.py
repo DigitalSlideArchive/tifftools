@@ -187,12 +187,16 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
                 'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
             continue
         if count * Datatype[taginfo['datatype']].size > datalen:
+            if (tag in tagSet and tagSet[tag].get('ndpi_offset') and (
+                    not info.get('size') or info['size'] >= 0x100000000)):
+                info['ndpi'] = True
+                data = ifdOffset - ((ifdOffset - data) & 0xFFFFFFFF) if data < ifdOffset else data
             taginfo['offset'] = data
         if tag in ifd['tags']:
             logger.warning('Duplicate tag %d: data at %d and %d' % (
                 tag, ifd['tags'][tag]['datapos'], taginfo['datapos']))
         ifd['tags'][tag] = taginfo
-    if info['bigtiff']:
+    if info['bigtiff'] or info.get('ndpi'):
         nextifd = struct.unpack(bom + 'Q', tiff.read(8))[0]
     else:
         nextifd = struct.unpack(bom + 'L', tiff.read(4))[0]
