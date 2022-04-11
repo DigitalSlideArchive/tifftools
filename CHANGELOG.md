@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.0
+
+### Features
+- Better handle NDPI files ([#64](../../pull/64))
+
 ## Version 1.2.10
 
 ### Improvements
