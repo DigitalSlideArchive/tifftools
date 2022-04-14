@@ -36,6 +36,7 @@ def test_main(cmd_params, check_text, catch_exc, test_path, capsys):
     (['info'], 'usage', SystemExit, None),
     (['info', '--help'], 'option', SystemExit, None),
     (['dump', '<input>'], 'Directory', None, 'aperio_jp2k.svs'),
+    (['dump', '--yaml', '--max-text', '20', '<input>'], 'Directory', None, 'philips.ptif'),
     (['info', 'nosuchfile'], 'No such file', SystemExit, None),
     (['info', os.path.join(
         os.path.dirname(__file__), 'data', 'bad_double_reference.tif')],

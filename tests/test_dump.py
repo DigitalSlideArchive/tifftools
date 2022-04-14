@@ -3,6 +3,7 @@ import json
 import os
 
 import pytest
+import yaml
 
 import tifftools
 
@@ -34,7 +35,7 @@ def test_tiff_dump(test_path, num_ifds, capsys):
 ])
 def test_tiff_dump_json(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)
-    tifftools.tiff_dump(path, json=True)
+    tifftools.tiff_dump(path, outformat='json')
     captured = capsys.readouterr()
     info = json.loads(captured.out)
     assert 'ifds' in info
@@ -83,7 +84,7 @@ def test_tiff_dump_specific_ifd(suffix, num_ifds, capsys):
 def test_tiff_dump_multiple(capsys):
     path1 = datastore.fetch('d043-200.tif')
     path2 = datastore.fetch('subsubifds.tif')
-    tifftools.tiff_dump([path1, path2])
+    tifftools.tiff_dump([path1, path2], max=6, max_text=40)
     captured = capsys.readouterr()
     assert len(captured.out.split('Directory ')) == 4 + 9 + 1
 
@@ -91,7 +92,7 @@ def test_tiff_dump_multiple(capsys):
 def test_tiff_dump_multiple_json(capsys):
     path1 = datastore.fetch('d043-200.tif')
     path2 = datastore.fetch('subsubifds.tif')
-    tifftools.tiff_dump([path1, path2], json=True)
+    tifftools.tiff_dump([path1, path2], outformat='json')
     captured = capsys.readouterr()
     info = json.loads(captured.out)
     assert path1 in info
@@ -115,3 +116,19 @@ def test_tiff_dump_jpeq_quality_bad(test_path, capsys):
     tifftools.tiff_dump(path)
     captured = capsys.readouterr()
     assert 'estimated quality' not in captured.out
+
+
+@pytest.mark.parametrize('test_path,num_ifds', [
+    ('aperio_jp2k.svs', 6),
+    ('hamamatsu.ndpi', 12),
+    ('philips.ptif', 11),
+    ('sample.subifd.ome.tif', 15),
+    ('d043-200.tif', 4),
+    ('subsubifds.tif', 9),
+])
+def test_tiff_dump_yaml(test_path, num_ifds, capsys):
+    path = datastore.fetch(test_path)
+    tifftools.tiff_dump(path, outformat='yaml', max=6, max_text=40)
+    captured = capsys.readouterr()
+    info = yaml.safe_load(captured.out)
+    assert 'ifds' in info
