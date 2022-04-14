@@ -64,7 +64,7 @@ def tiff_concat(source, output, overwrite=False, **kwargs):
     write_tiff(ifds, output, allowExisting=overwrite)
 
 
-def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
+def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None):
     """
     Print a tag to a string.
 
@@ -72,7 +72,9 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
     :param taginfo: a dictionary with 'data' and 'datatype' with tag information.
     :param linePrefix: a string to put in front of the output.  This is usually
         whitespace.
+    :param max: the maximum number of data items to print.
     :param dest: the stream to print results to.
+    :param max_text: the maximum length of a text field to print.
     """
     dest = sys.stdout if dest is None else dest
     datatype = Datatype[taginfo['datatype']]
@@ -98,7 +100,10 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
         if len(taginfo['data']) > max * len(datatype.pack):
             dest.write(' ...')
     elif datatype == Datatype.ASCII:
-        dest.write(' %s' % taginfo['data'])
+        if max_text and len(taginfo['data']) > max_text:
+            dest.write(' <%d> %s ...' % (len(taginfo['data']), taginfo['data'][:max_text]))
+        else:
+            dest.write(' %s' % taginfo['data'])
     else:
         dest.write(' <%d> %r' % (len(taginfo['data']), taginfo['data'][:max]))
         if len(taginfo['data']) > max:
@@ -110,7 +115,61 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None):
     dest.write('\n')
 
 
-def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='', tagSet=Tag):
+def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None):
+    """
+    Print a tag to a yaml string.
+
+    :param tag: the TiffTag class of the tag that should be printed.
+    :param taginfo: a dictionary with 'data' and 'datatype' with tag information.
+    :param linePrefix: a string to put in front of the output.  This is usually
+        whitespace.
+    :param max: the maximum number of data items to print.
+    :param dest: the stream to print results to.
+    :param max_text: the maximum length of a text field to print.
+    """
+    dest = sys.stdout if dest is None else dest
+    datatype = Datatype[taginfo['datatype']]
+    dest.write('%s  %s:' % (linePrefix, _yaml_escape_key(tag.name)))
+    if datatype.pack:
+        count = len(taginfo['data']) // len(datatype.pack)
+        if count != 1:
+            if len(taginfo['data']) > max:
+                dest.write(' %s' % json.dumps(taginfo['data'][:max] + ['...']))
+            else:
+                dest.write(' %s' % json.dumps(taginfo['data']))
+        else:
+            val = taginfo['data'][0]
+            if 'enum' in tag and val in tag.enum:
+                dest.write(' %s' % json.dumps(tag.enum[val]))
+            else:
+                dest.write(' %s' % json.dumps(val))
+    elif datatype == Datatype.ASCII:
+        val = taginfo['data']
+        if max_text and len(val) > max_text:
+            val = val[:max_text] + ' ...'
+        dest.write(' %s' % json.dumps(val))
+    else:
+        val = repr(taginfo['data'][:max])
+        if len(taginfo['data']) > max:
+            val + ' ...'
+        dest.write(' %s' % json.dumps(val))
+    dest.write('\n')
+
+
+def _yaml_escape_key(key):
+    """
+    Escape a key to be used in yaml.
+
+    :params key: a string to escape and quote.
+    :returns: the escaped key.
+    """
+    if key.isidentifier():
+        return key
+    return '"%s"' % key.replace('\\', '\\\\').replace('"', '\\"')
+
+
+def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='',
+                    tagSet=Tag, asyaml=False, max_text=None):
     """
     Print a list of ifds to a stream.
 
@@ -121,26 +180,42 @@ def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='', tagSet=Ta
     :param linePrefix: a string to put in front of each line.  This is usually
         whitespace.
     :param tagSet: the TiffTagSet class of tags to use for these IFDs.
+    :param asyaml: if True, output as yaml.
+    :param max_text: the maximum length of a text field to print.
     """
     dest = sys.stdout if dest is None else dest
     for idx, ifd in enumerate(ifds):
-        dest.write('%sDirectory %s%d: offset %d (0x%x)\n' % (
-            linePrefix, dirPrefix, idx, ifd['offset'], ifd['offset']))
+        if asyaml:
+            dest.write('%s  "Directory %s%d":\n' % (
+                linePrefix[:-2], dirPrefix, idx))
+        else:
+            dest.write('%sDirectory %s%d: offset %d (0x%x)\n' % (
+                linePrefix, dirPrefix, idx, ifd['offset'], ifd['offset']))
         subifdList = []
         for tag, taginfo in sorted(ifd['tags'].items()):
             tag = get_or_create_tag(tag, tagSet, {'datatype': Datatype[taginfo['datatype']]})
             if not tag.isIFD() and taginfo['datatype'] not in (Datatype.IFD, Datatype.IFD8):
-                _tiff_dump_tag(tag, taginfo, linePrefix, max, dest)
+                if asyaml:
+                    _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest, max_text)
+                else:
+                    _tiff_dump_tag(tag, taginfo, linePrefix, max, dest, max_text)
             else:
                 subifdList.append((tag, taginfo))
         for tag, taginfo in subifdList:
             subLinePrefix = linePrefix + '  '
             subDirPrefix = '%s%d,%s:' % (dirPrefix, idx, tag.name)
+            if asyaml:
+                dest.write('%s%s:\n' % (
+                    subLinePrefix, _yaml_escape_key(tag.name)))
             for subidx, subifds in enumerate(taginfo['ifds']):
-                dest.write('%s%s:%d\n' % (subLinePrefix, tag, subidx))
+                if asyaml:
+                    dest.write('%s-\n' % subLinePrefix)
+                else:
+                    dest.write('%s%s:%d\n' % (subLinePrefix, tag.name, subidx))
                 _tiff_dump_ifds(
                     subifds, max, dest, '%s%d,' % (subDirPrefix, subidx),
-                    subLinePrefix + '  ', getattr(tag, 'tagset', None))
+                    subLinePrefix + '  ', getattr(tag, 'tagset', None), asyaml,
+                    max_text)
 
 
 def tiff_info(*args, **kwargs):
@@ -165,27 +240,38 @@ def tiff_dump(source, max=20, dest=None, *args, **kwargs):
     """
     dest = sys.stdout if dest is None else dest
     if isinstance(source, list):
-        if kwargs.get('json'):
+        if kwargs.get('outformat') == 'json':
             dest.write('{\n')
         for srcidx, src in enumerate(source):
-            if kwargs.get('json'):
+            if kwargs.get('outformat') == 'json':
                 json.dump(src, dest)
                 dest.write(': ')
+            elif kwargs.get('outformat') == 'yaml':
+                dest.write('%s:\n' % _yaml_escape_key(src))
             else:
                 dest.write('-- %s --\n' % src)
             tiff_dump(src, max=max, dest=dest, *args, **kwargs)
-            if kwargs.get('json'):
+            if kwargs.get('outformat') == 'json':
                 dest.write(',\n' if srcidx + 1 != len(source) else '\n}')
         return
     info = read_tiff(source)
-    if kwargs.get('json'):
+    if kwargs.get('outformat') == 'json':
         json.dump(info, dest, indent=2, cls=ExtendedJsonEncoder)
         return
-    dest.write('Header: 0x%02x%02x <%s-endian> <%sTIFF>\n' % (
-        info['header'][0], info['header'][1],
-        'big' if info['bigEndian'] else 'little',
-        'Big' if info['bigtiff'] else 'Classic'))
-    _tiff_dump_ifds(info['ifds'], max, dest)
+    linePrefix = ''
+    if kwargs.get('outformat') == 'yaml':
+        dest.write('  header:\n    endian: %s\n    bigTiff: %s\n  ifds:\n' % (
+            'big' if info['bigEndian'] else 'little',
+            'true' if info['bigtiff'] else 'false'))
+        linePrefix = '    '
+    else:
+        dest.write('Header: 0x%02x%02x <%s-endian> <%sTIFF>\n' % (
+            info['header'][0], info['header'][1],
+            'big' if info['bigEndian'] else 'little',
+            'Big' if info['bigtiff'] else 'Classic'))
+    _tiff_dump_ifds(info['ifds'], max, dest, linePrefix=linePrefix,
+                    asyaml=kwargs.get('outformat') == 'yaml',
+                    max_text=kwargs.get('max_text'))
 
 
 def _iterate_ifds(ifds, subifds=False):
@@ -535,7 +621,7 @@ use 'sample.tiff,1'."""
     parserInfo = subparsers.add_parser(
         'dump',
         aliases=['info'],
-        help='dump [--max MAX] [--json] source [source ...]',
+        help='dump [--max MAX] [--json|--yaml] source [source ...]',
         description='Print contents of a TIFF file.',
         epilog=epilog)
     parserInfo.add_argument(
@@ -543,8 +629,14 @@ use 'sample.tiff,1'."""
     parserInfo.add_argument(
         '--max', '-m', type=int, help='Maximum items to display.', default=20)
     parserInfo.add_argument(
-        '--json', action='store_true',
-        help='Output as json.')
+        '--max-text', '--max_text', type=int,
+        help='Maximum length of a text record to display.')
+    parserInfo.add_argument(
+        '--json', dest='outformat', action='store_const', const='json',
+        help='Output as json.  This is not intended for human readability.')
+    parserInfo.add_argument(
+        '--yaml', dest='outformat', action='store_const', const='yaml',
+        help='Output as yaml.')
 
     parserSet = subparsers.add_parser(
         'set',
