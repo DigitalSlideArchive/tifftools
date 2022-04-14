@@ -64,7 +64,7 @@ def tiff_concat(source, output, overwrite=False, **kwargs):
     write_tiff(ifds, output, allowExisting=overwrite)
 
 
-def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None):
+def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None, ifd=None):
     """
     Print a tag to a string.
 
@@ -75,6 +75,8 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None):
     :param max: the maximum number of data items to print.
     :param dest: the stream to print results to.
     :param max_text: the maximum length of a text field to print.
+    :param ifd: parent ifd record.  Optionally used for more complex
+        formatting.
     """
     dest = sys.stdout if dest is None else dest
     datatype = Datatype[taginfo['datatype']]
@@ -109,13 +111,13 @@ def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None):
         if len(taginfo['data']) > max:
             dest.write(' ...')
     if 'dump' in tag:
-        extra = tag.dump(taginfo['data'])
+        extra = tag.dump(taginfo['data'], ifd, dest, linePrefix + '    ')
         if extra:
             dest.write(' (%s)' % extra)
     dest.write('\n')
 
 
-def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None):
+def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None, ifd=None):
     """
     Print a tag to a yaml string.
 
@@ -126,10 +128,31 @@ def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None)
     :param max: the maximum number of data items to print.
     :param dest: the stream to print results to.
     :param max_text: the maximum length of a text field to print.
+    :param ifd: parent ifd record.  Optionally used for more complex
+        formatting.
     """
     dest = sys.stdout if dest is None else dest
     datatype = Datatype[taginfo['datatype']]
     dest.write('%s  %s:' % (linePrefix, _yaml_escape_key(tag.name)))
+    if 'dumpraw' in tag:
+        result = tag.dumpraw(taginfo['data'], ifd)
+        if isinstance(result, dict) and len(result):
+            dest.write('\n')
+            for key, value in result.items():
+                dest.write('%s    %s: ' % (linePrefix, _yaml_escape_key(key)))
+                if isinstance(value, list) and len(value) == 1:
+                    dest.write(json.dumps(value[0]))
+                elif isinstance(value, list):
+                    dest.write(json.dumps(value[:max]))
+                elif isinstance(value, bytes):
+                    val = repr(value[:max])
+                    if len(value) > max:
+                        val += ' ...'
+                    dest.write(json.dumps(val))
+                else:
+                    dest.write(json.dumps(value))
+                dest.write('\n')
+            return
     if datatype.pack:
         count = len(taginfo['data']) // len(datatype.pack)
         if count != 1:
@@ -151,7 +174,7 @@ def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None)
     else:
         val = repr(taginfo['data'][:max])
         if len(taginfo['data']) > max:
-            val + ' ...'
+            val += ' ...'
         dest.write(' %s' % json.dumps(val))
     dest.write('\n')
 
@@ -196,9 +219,9 @@ def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='',
             tag = get_or_create_tag(tag, tagSet, {'datatype': Datatype[taginfo['datatype']]})
             if not tag.isIFD() and taginfo['datatype'] not in (Datatype.IFD, Datatype.IFD8):
                 if asyaml:
-                    _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest, max_text)
+                    _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest, max_text, ifd)
                 else:
-                    _tiff_dump_tag(tag, taginfo, linePrefix, max, dest, max_text)
+                    _tiff_dump_tag(tag, taginfo, linePrefix, max, dest, max_text, ifd)
             else:
                 subifdList.append((tag, taginfo))
         for tag, taginfo in subifdList:

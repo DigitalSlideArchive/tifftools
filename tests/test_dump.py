@@ -17,6 +17,7 @@ from .datastore import datastore
     ('sample.subifd.ome.tif', 15),
     ('d043-200.tif', 4),
     ('subsubifds.tif', 9),
+    ('landcover_sample_1000.tif', 1),
 ])
 def test_tiff_dump(test_path, num_ifds, capsys):
     path = datastore.fetch(test_path)
@@ -25,15 +26,16 @@ def test_tiff_dump(test_path, num_ifds, capsys):
     assert len(captured.out.split('Directory ')) == num_ifds + 1
 
 
-@pytest.mark.parametrize('test_path,num_ifds', [
-    ('aperio_jp2k.svs', 6),
-    ('hamamatsu.ndpi', 12),
-    ('philips.ptif', 11),
-    ('sample.subifd.ome.tif', 15),
-    ('d043-200.tif', 4),
-    ('subsubifds.tif', 9),
+@pytest.mark.parametrize('test_path', [
+    'aperio_jp2k.svs',
+    'hamamatsu.ndpi',
+    'philips.ptif',
+    'sample.subifd.ome.tif',
+    'd043-200.tif',
+    'subsubifds.tif',
+    'landcover_sample_1000.tif',
 ])
-def test_tiff_dump_json(test_path, num_ifds, capsys):
+def test_tiff_dump_json(test_path, capsys):
     path = datastore.fetch(test_path)
     tifftools.tiff_dump(path, outformat='json')
     captured = capsys.readouterr()
@@ -118,17 +120,34 @@ def test_tiff_dump_jpeq_quality_bad(test_path, capsys):
     assert 'estimated quality' not in captured.out
 
 
-@pytest.mark.parametrize('test_path,num_ifds', [
-    ('aperio_jp2k.svs', 6),
-    ('hamamatsu.ndpi', 12),
-    ('philips.ptif', 11),
-    ('sample.subifd.ome.tif', 15),
-    ('d043-200.tif', 4),
-    ('subsubifds.tif', 9),
+@pytest.mark.parametrize('test_path', [
+    'aperio_jp2k.svs',
+    'hamamatsu.ndpi',
+    'philips.ptif',
+    'sample.subifd.ome.tif',
+    'd043-200.tif',
+    'subsubifds.tif',
+    'landcover_sample_1000.tif',
 ])
-def test_tiff_dump_yaml(test_path, num_ifds, capsys):
+def test_tiff_dump_yaml(test_path, capsys):
     path = datastore.fetch(test_path)
     tifftools.tiff_dump(path, outformat='yaml', max=6, max_text=40)
     captured = capsys.readouterr()
     info = yaml.safe_load(captured.out)
     assert 'ifds' in info
+
+
+def test_geokeys_to_dict():
+    path = datastore.fetch('landcover_sample_1000.tif')
+    tiffinfo = tifftools.read_tiff(path)
+    ifd = tiffinfo['ifds'][0]
+    keys = ifd['tags'][tifftools.Tag.GeoKeyDirectoryTag.value]['data'][:]
+    assert 'GeogInvFlattening' in tifftools.constants.GeoKeysToDict(keys, ifd)
+    assert 'GeogTOWGS84' in tifftools.constants.GeoKeysToDict(keys, ifd)
+    # Break the version number
+    keys[0] = 5
+    assert tifftools.constants.GeoKeysToDict(keys, ifd) == {}
+    # Test if there is an invalid data type that gets ignore
+    keys = ifd['tags'][tifftools.Tag.GeoKeyDirectoryTag.value]['data'][:]
+    keys[keys.index(2059) + 1] = 1
+    assert 'GeogInvFlattening' not in tifftools.constants.GeoKeysToDict(keys, ifd)
