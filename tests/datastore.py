@@ -18,6 +18,8 @@ registry = {
     'd043-200.tif': 'sha512:0ce72614df0409297c2a7261d13fd2501fcc4a7044680f1de00c1c21620a2bcc233a7ca5cf92e704d7364c6a8bb79e12d2122063b1f4ccce09b550525ba728ab',  # noqa
     # Tiff with subifds with subifds
     'subsubifds.tif': 'sha512:372ca32735c8a8fdbe2286dabead9e779da63f10ba81eda84625e5273f76d74ca1a47a978f67e9c00c12f7f72009c7b2c07a641e643bb0c463812f4ae7f15d6e',  # noqa
+    # Tiff with GeoKey data
+    'landcover_sample_1000.tif': 'sha512:0a1e8c4cf29174b19ddece9a2deb7230a31e819ee78b5ec264feda6356abf60d63763106f1ddad9dd04106d383fd0867bf2db55be0552c30f38ffb530bf72dec',  # noqa
 }
 
 
