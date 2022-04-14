@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 1.3.1
+
+### Improvements
+- Support dumping to yaml ([#66](../../pull/66))
+- Format GeoKey data for easier readability ([#67](../../pull/67))
+
 ## Version 1.3.0
 
 ### Features
