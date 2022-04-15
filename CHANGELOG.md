@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 1.3.3
+## Version 1.3.2
 
 ### Improvements
 - Add optional support for argcomplete ([#68](../../pull/68))
