@@ -703,6 +703,16 @@ use 'sample.tiff,1'."""
         for argument in argumentsForAllParsers:
             parser.add_argument(*argument['args'], **argument['kwargs'])
 
+    # If argcomplete is optionally installed, support bash completion.
+    # Compelteion installation will be something like
+    #   eval "$(register-python-argcomplete tifftools)"
+    # See argcompelte's documentation.
+    try:
+        import argcomplete
+        argcomplete.autocomplete(mainParser)
+    except ImportError:
+        pass
+
     # This allows argumentsForAllParsers to be either before or after the
     # command.
     secondary, notInSecondary = secondaryParser.parse_known_args(args)
