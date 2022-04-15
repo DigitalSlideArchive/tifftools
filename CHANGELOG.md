@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 1.3.3
+
+### Improvements
+- Add optional support for argcomplete ([#68](../../pull/68))
+- Make it easier to add new ifds ([#70](../../pull/70))
+
 ## Version 1.3.1
 
 ### Improvements
