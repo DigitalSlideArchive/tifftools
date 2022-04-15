@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import contextlib
+import io
 import shutil
 import sys
 import tempfile
@@ -21,10 +22,11 @@ def OpenPathOrFobj(pathOrObj, mode='rb'):
     """
     Given any of a file path, a pathlib Path object, a filelike-object that is
     seekable, a filelike-object that is not seekable, or '-' or None to
-    indicate either stdin or stdout, return a seekable filelike-object.
+    indicate either stdin or stdout, return a seekable filelike-object.  False
+    to return seekable memory buffer.
 
-    :param pathOrObj: one of a file path, pathlib Path, filelike-object, or
-        None or '-'.
+    :param pathOrObj: one of a file path, pathlib Path, filelike-object, None
+        or '-', or False.
     :param mode: the mode to open a path or temporary file as needed.  This
         won't affect a seekable filelike-object.  If '-' or None is specified,
         the presence of 'w' determines if stdout or stdin is opened (always in
@@ -33,7 +35,9 @@ def OpenPathOrFobj(pathOrObj, mode='rb'):
     """
     if pathOrObj == '-' or pathOrObj is None:
         pathOrObj = sys.stdout.buffer if 'w' in mode.lower() else sys.stdin.buffer
-    if not is_filelike_object(pathOrObj):
+    if pathOrObj is False:
+        yield io.BytesIO()
+    elif not is_filelike_object(pathOrObj):
         with open(pathOrObj, mode) as fobj:
             yield fobj
     elif (hasattr(pathOrObj, 'seekable') and pathOrObj.seekable() and

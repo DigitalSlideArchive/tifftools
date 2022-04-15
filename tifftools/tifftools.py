@@ -327,7 +327,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
     dest.seek(0, os.SEEK_END)
     ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
     subifdPtrs = {}
-    with OpenPathOrFobj(ifd['path_or_fobj'], 'rb') as src:
+    with OpenPathOrFobj(ifd.get('path_or_fobj', False), 'rb') as src:
         for tag, taginfo in sorted(ifd['tags'].items()):
             tag = get_or_create_tag(
                 tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}

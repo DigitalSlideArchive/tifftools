@@ -170,3 +170,18 @@ def test_write_bad_strip_offset(tmp_path, caplog):
     assert 'from desired offset' in caplog.text
     destinfo = tifftools.read_tiff(destpath)
     assert destinfo['ifds'][0]['tags'][tifftools.Tag.StripOffsets.value]['data'][0] == 0
+
+
+def test_write_new_ifd_without_fobj(tmp_path):
+    path = datastore.fetch('d043-200.tif')
+    info = tifftools.read_tiff(path)
+    del info['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]
+    newifdentry = {'datatype': tifftools.Datatype.IFD, 'ifds': [[{'tags': {}}]]}
+    info['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value] = newifdentry
+    newifd = newifdentry['ifds'][0][0]
+    newifd['tags'][tifftools.constants.EXIFTag.ExposureTime.value] = {
+        'datatype': tifftools.Datatype.FLOAT, 'data': [10]}
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    newinfo = tifftools.read_tiff(destpath)
+    assert len(newinfo['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]['ifds'][0][0]['tags']) == 1
