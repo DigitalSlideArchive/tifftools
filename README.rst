@@ -17,7 +17,7 @@ Example
         'data': 'A dog digging.',
         'datatype': tifftools.Datatype.ASCII
     }
-    exififd = info['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]['ifds'][0]
+    exififd = info['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]['ifds'][0][0]
     exififd['tags'][tifftools.constants.EXIFTag.FNumber.value] = {
         'data': [54, 10],
         'datatype': tifftools.Datatype.RATIONAL
