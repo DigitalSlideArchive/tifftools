@@ -251,7 +251,7 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
                         break
 
 
-def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
+def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False, ifdsFirst=False):
     """
     Write a tiff file based on data in a list of ifds.
 
@@ -274,6 +274,9 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
         just convert to bigtiff, but actually rewrites the file to avoid
         unaccounted bytes in the file.
     :param allowExisting: if False, raise an error if the path already exists.
+    :param ifdsFirst: if True, write IFDs before their respective data.
+        Otherwise, IFDs are written after their data.  IFDs are always adjacent
+        to their data.
     """
     if isinstance(ifds, dict):
         bigEndian = ifds.get('bigEndian') if bigEndian is None else bigEndian
@@ -296,7 +299,7 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
         dest.write(header)
         for ifd in ifds:
             try:
-                ifdPtr = write_ifd(dest, bom, bigtiff, ifd, ifdPtr)
+                ifdPtr = write_ifd(dest, bom, bigtiff, ifd, ifdPtr, ifdsFirst=ifdsFirst)
             except MustBeBigTiffError:
                 # This can only be raised if bigtiff is false
                 rewriteBigtiff = True
@@ -307,108 +310,169 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False):
             write_tiff(ifds, dest, bigEndian, True)
 
 
-def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag):
+class _WriteTracker():
+    """
+    Provide a class that simulates enough of a I/O class to track length and
+    offset.
+    """
+
+    def __init__(self, pos):
+        self.pos = self.len = pos
+
+    def write(self, data):
+        self.pos += len(data)
+        if self.pos > self.len:
+            self.len = self.pos
+
+    def tell(self):
+        return self.pos
+
+    def seek(self, offset, whence=os.SEEK_SET):
+        self.pos = (self.len if whence == os.SEEK_END else (
+            self.pos if whence == os.SEEK_CUR else 0)) + offset
+
+
+def _ifdsPass(ifdsFirst, ifdsPass, origdest, ifddest):
+    """
+    To handle writing IFDs before or after their associated data, return a
+    pair of pointers to handle writing data.  For writing IFDs after the data,
+    these are the same.  We write the data, collecting the location of the
+    output as we go.  For writing IFDs first, we take three passes.  On the
+    first pass, we don't actually write any data, we just collect lengths so
+    that we can allocate the appropriate space for the IFD.  For the second
+    pass, we write the actual IFD using the correct offsets but don't write the
+    data.  Lasttly, we write the actual data.
+
+    :param ifdsFirst: if True, ifds are written before data.
+    :param ifdsPass: ignored if idsFirst is False, otherwise a pass number in
+        the set of {0, 1, 2}.
+    :param origdest: the original destination I/O pointer.
+    :param ifddest: the most recent ifd I/O pointer.
+    """
+    if not ifdsFirst:
+        return origdest, origdest
+    if ifdsPass == 0:
+        dest = _WriteTracker(origdest.tell())
+        ifddest = _WriteTracker(0)
+    elif ifdsPass == 1:
+        dest = _WriteTracker(origdest.tell() + ifddest.tell())
+        ifddest = origdest
+    else:
+        dest = origdest
+        ifddest = _WriteTracker(0)
+    return dest, ifddest
+
+
+def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag, ifdsFirst=False):
     """
     Write an IFD to a TIFF file.  This copies image data from other tiff files.
 
     :param dest: the open file handle to write.
-    :param bom: eithter '<' or '>' for using struct to encode values based on
+    :param bom: either '<' or '>' for using struct to encode values based on
         endian.
     :param bigtiff: True if this is a bigtiff.
     :param ifd: The ifd record.  This requires the tags dictionary and the
         path value.
     :param ifdPtr: a location to write the value of this ifd's start.
     :param tagSet: the TiffConstantSet class to use for tags.
+    :param ifdsFirst: if True, write IFDs before their respective data.
+        Otherwise, IFDs are written after their data.  IFDs are always adjacent
+        to their data.
     :return: the ifdPtr for the next ifd that could be written.
     """
     ptrpack = 'Q' if bigtiff else 'L'
     tagdatalen = 8 if bigtiff else 4
     ptrmax = 256 ** tagdatalen
     dest.seek(0, os.SEEK_END)
-    ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
-    subifdPtrs = {}
-    with OpenPathOrFobj(ifd.get('path_or_fobj', False), 'rb') as src:
-        for tag, taginfo in sorted(ifd['tags'].items()):
-            tag = get_or_create_tag(
-                tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}
-                                if taginfo.get('datatype') else {}))
-            if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
-                data = [0] * len(taginfo['ifds'])
-                taginfo = taginfo.copy()
-                taginfo['datatype'] = Datatype.IFD8 if bigtiff else Datatype.IFD
-            else:
-                data = taginfo['data']
-            count = len(data)
-            if tag.isOffsetData():
-                if isinstance(tag.bytecounts, str):
-                    data = write_tag_data(
-                        dest, src, data,
-                        ifd['tags'][int(tagSet[tag.bytecounts])]['data'],
-                        ifd['size'])
+    origPos = dest.tell()
+    origdest = ifddest = dest
+    for ifdsPass in range(3 if ifdsFirst else 1):
+        dest, ifddest = _ifdsPass(ifdsFirst, ifdsPass, origdest, ifddest)
+        ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
+        subifdPtrs = {}
+        with OpenPathOrFobj(ifd.get('path_or_fobj', False), 'rb') as src:
+            for tag, taginfo in sorted(ifd['tags'].items()):
+                tag = get_or_create_tag(
+                    tag, tagSet, **({'datatype': Datatype[taginfo['datatype']]}
+                                    if taginfo.get('datatype') else {}))
+                if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
+                    data = [0] * len(taginfo['ifds'])
+                    taginfo = taginfo.copy()
+                    taginfo['datatype'] = Datatype.IFD8 if bigtiff else Datatype.IFD
                 else:
-                    data = write_tag_data(
-                        dest, src, data, [tag.bytecounts] * count, ifd['size'])
-                if not bigtiff and any(val for val in data if val >= 0x100000000):
-                    raise MustBeBigTiffError(
-                        'The file is large enough it must be in bigtiff format.')
-                taginfo = taginfo.copy()
-                taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
-
-            if not bigtiff and Datatype[taginfo['datatype']] in {Datatype.LONG8, Datatype.SLONG8}:
-                if Datatype[taginfo['datatype']] == Datatype.LONG8 and all(
-                        x < 2**32 for x in taginfo['data']):
-                    taginfo['datatype'] = Datatype.LONG.value
-                elif Datatype[taginfo['datatype']] == Datatype.SLONG8 and all(
-                        abs(x) < 2**31 for x in taginfo['data']):
-                    taginfo['datatype'] = Datatype.SLONG.value
-                else:
-                    raise MustBeBigTiffError('There are datatypes that require bigtiff format.')
-            if Datatype[taginfo['datatype']].pack:
-                pack = Datatype[taginfo['datatype']].pack
-                count //= len(pack)
-                data = struct.pack(bom + pack * count, *data)
-            elif Datatype[taginfo['datatype']] == Datatype.ASCII:
-                # Handle null-seperated lists
-                data = data.encode() + b'\x00'
+                    data = taginfo['data']
                 count = len(data)
-            else:
-                data = taginfo['data']
-            tagrecord = struct.pack(bom + 'HH' + ptrpack, tag, taginfo['datatype'], count)
-            if len(data) <= tagdatalen:
-                if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
-                    subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
-                tagrecord += data + b'\x00' * (tagdatalen - len(data))
-            else:
-                # word alignment
-                if dest.tell() % 2:
-                    dest.write(b'\x00')
-                if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
-                    subifdPtrs[tag] = dest.tell()
-                if not bigtiff and dest.tell() >= ptrmax:
-                    raise MustBeBigTiffError(
-                        'The file is large enough it must be in bigtiff format.')
-                tagrecord += struct.pack(bom + ptrpack, dest.tell())
-                dest.write(data)
-            ifdrecord += tagrecord
-    if not bigtiff and dest.tell() >= ptrmax:
-        raise MustBeBigTiffError(
-            'The file is large enough it must be in bigtiff format.')
-    pos = dest.tell()
-    # ifds are expected to be on word boundaries
-    if pos % 2:
-        dest.write(b'\x00')
+                if tag.isOffsetData():
+                    if isinstance(tag.bytecounts, str):
+                        data = write_tag_data(
+                            dest, src, data,
+                            ifd['tags'][int(tagSet[tag.bytecounts])]['data'],
+                            ifd['size'])
+                    else:
+                        data = write_tag_data(
+                            dest, src, data, [tag.bytecounts] * count, ifd['size'])
+                    if not bigtiff and any(val for val in data if val >= 0x100000000):
+                        raise MustBeBigTiffError(
+                            'The file is large enough it must be in bigtiff format.')
+                    taginfo = taginfo.copy()
+                    taginfo['datatype'] = Datatype.LONG8 if bigtiff else Datatype.LONG
+
+                if not bigtiff and Datatype[taginfo['datatype']] in {
+                        Datatype.LONG8, Datatype.SLONG8}:
+                    if Datatype[taginfo['datatype']] == Datatype.LONG8 and all(
+                            x < 2**32 for x in taginfo['data']):
+                        taginfo['datatype'] = Datatype.LONG.value
+                    elif Datatype[taginfo['datatype']] == Datatype.SLONG8 and all(
+                            abs(x) < 2**31 for x in taginfo['data']):
+                        taginfo['datatype'] = Datatype.SLONG.value
+                    else:
+                        raise MustBeBigTiffError('There are datatypes that require bigtiff format.')
+                if Datatype[taginfo['datatype']].pack:
+                    pack = Datatype[taginfo['datatype']].pack
+                    count //= len(pack)
+                    data = struct.pack(bom + pack * count, *data)
+                elif Datatype[taginfo['datatype']] == Datatype.ASCII:
+                    # Handle null-seperated lists
+                    data = data.encode() + b'\x00'
+                    count = len(data)
+                else:
+                    data = taginfo['data']
+                tagrecord = struct.pack(bom + 'HH' + ptrpack, tag, taginfo['datatype'], count)
+                if len(data) <= tagdatalen:
+                    if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
+                        subifdPtrs[tag] = -(len(ifdrecord) + len(tagrecord))
+                    tagrecord += data + b'\x00' * (tagdatalen - len(data))
+                else:
+                    # word alignment
+                    if dest.tell() % 2:
+                        dest.write(b'\x00')
+                    if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
+                        subifdPtrs[tag] = dest.tell()
+                    if not bigtiff and dest.tell() >= ptrmax:
+                        raise MustBeBigTiffError(
+                            'The file is large enough it must be in bigtiff format.')
+                    tagrecord += struct.pack(bom + ptrpack, dest.tell())
+                    dest.write(data)
+                ifdrecord += tagrecord
+        if not bigtiff and dest.tell() >= ptrmax:
+            raise MustBeBigTiffError(
+                'The file is large enough it must be in bigtiff format.')
         pos = dest.tell()
-    dest.seek(ifdPtr)
-    dest.write(struct.pack(bom + ptrpack, pos))
-    dest.seek(0, os.SEEK_END)
-    dest.write(ifdrecord)
-    nextifdPtr = dest.tell()
-    dest.write(struct.pack(bom + ptrpack, 0))
-    write_sub_ifds(dest, bom, bigtiff, ifd, pos, subifdPtrs)
+        # ifds are expected to be on word boundaries
+        if pos % 2:
+            dest.write(b'\x00')
+            pos = dest.tell()
+        dest.seek(ifdPtr)
+        dest.write(struct.pack(bom + ptrpack, origPos if ifdsFirst else pos))
+        dest.seek(0, os.SEEK_END)
+        ifddest.write(ifdrecord)
+        nextifdPtr = dest.tell()
+        ifddest.write(struct.pack(bom + ptrpack, 0))
+    write_sub_ifds(dest, bom, bigtiff, ifd, pos, subifdPtrs, ifdsFirst=ifdsFirst)
     return nextifdPtr
 
 
-def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag):
+def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag, ifdsFirst=False):
     """
     Write any number of SubIFDs to a TIFF file.  These can be based on tags
     other than the SubIFD tag.
@@ -426,6 +490,9 @@ def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag):
         subifd, or (b) a negative number whose absolute value is added to
         parentPos to get the absolute location to store the location of the
         first subifd.
+    :param ifdsFirst: if True, write IFDs before their respective data.
+        Otherwise, IFDs are written after their data.  IFDs are always adjacent
+        to their data.
     """
     tagdatalen = 8 if bigtiff else 4
     for tag, subifdPtr in subifdPtrs.items():
@@ -438,7 +505,7 @@ def write_sub_ifds(dest, bom, bigtiff, ifd, parentPos, subifdPtrs, tagSet=Tag):
             for ifdInSubifd in subifd:
                 nextSubifdPtr = write_ifd(
                     dest, bom, bigtiff, ifdInSubifd, nextSubifdPtr,
-                    getattr(tag, 'tagset', None))
+                    getattr(tag, 'tagset', None), ifdsFirst=ifdsFirst)
             subifdPtr += tagdatalen
 
 
