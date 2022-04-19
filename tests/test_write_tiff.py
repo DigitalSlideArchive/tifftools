@@ -185,3 +185,13 @@ def test_write_new_ifd_without_fobj(tmp_path):
     tifftools.write_tiff(info, destpath)
     newinfo = tifftools.read_tiff(destpath)
     assert len(newinfo['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]['ifds'][0][0]['tags']) == 1
+
+
+def test_write_ifds_first(tmp_path):
+    path = datastore.fetch('d043-200.tif')
+    info = tifftools.read_tiff(path)
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath, ifdsFirst=True)
+    len = os.path.getsize(destpath)
+    tifftools.write_tiff(info, destpath, allowExisting=True)
+    assert len == os.path.getsize(destpath)

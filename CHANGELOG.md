@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.3
+
+### Improvements
+- Support writing IFDs before their associated data ([#71](../../pull/71))
+
 ## Version 1.3.2
 
 ### Improvements
