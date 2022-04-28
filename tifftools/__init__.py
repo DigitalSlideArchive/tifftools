@@ -1,6 +1,7 @@
 import importlib.metadata
 import logging
 
+from . import geotiff_utils
 from .commands import main, tiff_concat, tiff_dump, tiff_info, tiff_merge, tiff_set, tiff_split
 from .constants import Datatype, Tag, TiffDatatype, TiffTag
 from .exceptions import (MustBeBigTiffError, MustBeBigTiffException, TifftoolsError,
@@ -35,6 +36,8 @@ __all__ = (
     'tiff_merge',
     'tiff_set',
     'tiff_split',
+
+    'geotiff_utils',
 
     '__version__',
     'main',

@@ -773,7 +773,7 @@ Tag = TiffConstantSet(TiffTag, {
     34665: {'name': 'EXIFIFD', 'datatype': (Datatype.IFD, Datatype.IFD8), 'tagset': EXIFTag},
     34675: {'name': 'ICCProfile'},
     34732: {'name': 'ImageLayer'},
-    34735: {'name': 'GeoKeyDirectoryTag', 'dump': lambda *args: GeoKeysToDict(*args) and '', 'dumpraw': GeoKeysToDict},
+    34735: {'name': 'GeoKeyDirectoryTag'},
     34736: {'name': 'GeoDoubleParamsTag'},
     34737: {'name': 'GeoAsciiParamsTag'},
     34750: {'name': 'JBIGOptions'},
