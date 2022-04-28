@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.4
+
+### Improvements
+- Improve yaml enum output ([#72](../../pull/72))
+
 ## Version 1.3.3
 
 ### Improvements

@@ -163,7 +163,7 @@ def _tiff_dump_tag_yaml(tag, taginfo, linePrefix, max, dest=None, max_text=None,
         else:
             val = taginfo['data'][0]
             if 'enum' in tag and val in tag.enum:
-                dest.write(' %s' % json.dumps(tag.enum[val]))
+                dest.write(' %s' % _yaml_escape_key(tag.enum[val].name))
             else:
                 dest.write(' %s' % json.dumps(val))
     elif datatype == Datatype.ASCII:
