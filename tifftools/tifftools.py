@@ -187,7 +187,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
                 'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
             continue
         if count * Datatype[taginfo['datatype']].size > datalen:
-            if (tag in tagSet and tagSet[tag].get('ndpi_offset') and (
+            if (tagSet and tag in tagSet and tagSet[tag].get('ndpi_offset') and (
                     not info.get('size') or info['size'] >= 0x100000000)):
                 info['ndpi'] = True
                 data = ifdOffset - ((ifdOffset - data) & 0xFFFFFFFF) if data < ifdOffset else data
