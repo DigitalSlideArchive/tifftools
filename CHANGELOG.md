@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.5
+
+### Improvements
+- Guard against a missing tag set ([#74](../../pull/74))
+ 
 ## Version 1.3.4
 
 ### Improvements
