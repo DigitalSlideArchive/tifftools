@@ -65,13 +65,13 @@ jobs:
       - tox:
           env: py310
       - coverage
-  pypy36:
+  py311:
     docker:
-      - image: pypy:3.6
+      - image: python:3.11
     steps:
       - checkout
       - tox:
-          env: test-pypy36
+          env: py311
       - coverage
   pypy37:
     docker:
@@ -157,7 +157,7 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - pypy36:
+      - py311:
           filters:
             tags:
               only: /^v.*/
@@ -199,7 +199,7 @@ workflows:
             - py38
             - py39
             - py310
-            - pypy36
+            - py311
             - pypy37
             - pypy38
             - pypy39
