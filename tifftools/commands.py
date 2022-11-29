@@ -253,7 +253,7 @@ class ExtendedJsonEncoder(json.JSONEncoder):
         return '%s:%s' % (type(obj).__name__, repr(obj))
 
 
-def tiff_dump(source, max=20, dest=None, *args, **kwargs):
+def tiff_dump(source, max=20, dest=None, **kwargs):
     """
     Print the tiff information.
 
@@ -273,7 +273,7 @@ def tiff_dump(source, max=20, dest=None, *args, **kwargs):
                 dest.write('%s:\n' % _yaml_escape_key(src))
             else:
                 dest.write('-- %s --\n' % src)
-            tiff_dump(src, max=max, dest=dest, *args, **kwargs)
+            tiff_dump(src, max=max, dest=dest, **kwargs)
             if kwargs.get('outformat') == 'json':
                 dest.write(',\n' if srcidx + 1 != len(source) else '\n}')
         return
