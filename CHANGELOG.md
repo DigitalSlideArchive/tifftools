@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 1.3.6
+
+### Improvements
+
+- Harden dumping invalid geokeys ([#77](../../pull/77))
+
 ## Version 1.3.5
 
 ### Improvements

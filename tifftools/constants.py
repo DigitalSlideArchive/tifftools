@@ -599,6 +599,8 @@ def GeoKeysToDict(keys, ifd, dest=None, linePrefix=''):
     asciis = ifd['tags'][Tag.GeoAsciiParamsTag.value]['data'] if Tag.GeoAsciiParamsTag.value in ifd['tags'] else ''
     for idx in range(4, len(keys), 4):
         keyid, tagval, count, offset = keys[idx:idx + 4]
+        if not keyid in GeoTiffGeoKey:
+            continue
         name = GeoTiffGeoKey[keyid].name
         if not tagval:
             result[name] = [offset]
