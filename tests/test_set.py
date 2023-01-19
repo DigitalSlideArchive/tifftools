@@ -63,7 +63,7 @@ def test_tiff_set_self(tmp_path):
     path = datastore.fetch('d043-200.tif')
     dest = tmp_path / 'results.tif'
     shutil.copy(path, dest)
-    with pytest.raises(Exception):
+    with pytest.raises(tifftools.exceptions.TifftoolsError):
         tifftools.tiff_set(dest, setlist=[('ImageDescription', 'Dog digging')])
     info = tifftools.read_tiff(str(dest))
     assert int(tifftools.Tag.ImageDescription) not in info['ifds'][0]['tags']
