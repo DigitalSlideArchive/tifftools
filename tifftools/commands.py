@@ -42,9 +42,7 @@ def _apply_flags_to_ifd(ifd, bigtiff=None, bigendian=None, **kwargs):
 
 
 def tiff_merge(*args, **kwargs):
-    """
-    Alias for tiff_concat.
-    """
+    """Alias for tiff_concat."""
     return tiff_concat(*args, **kwargs)
 
 
@@ -242,9 +240,7 @@ def _tiff_dump_ifds(ifds, max, dest=None, dirPrefix='', linePrefix='',
 
 
 def tiff_info(*args, **kwargs):
-    """
-    Alias for tiff_dump.
-    """
+    """Alias for tiff_dump."""
     return tiff_dump(*args, **kwargs)
 
 
