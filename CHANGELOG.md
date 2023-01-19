@@ -1,9 +1,13 @@
 # Change Log
 
+## Version 1.3.7
+
+### Improvements
+- Ensure "tests" package is excluded from build ([#78](../../pull/78))
+
 ## Version 1.3.6
 
 ### Improvements
-
 - Harden dumping invalid geokeys ([#77](../../pull/77))
 
 ## Version 1.3.5
