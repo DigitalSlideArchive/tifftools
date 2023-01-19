@@ -76,10 +76,10 @@ def test_get_or_create_tag():
 
 
 def test_get_or_create_tag_limits():
-    with pytest.raises(Exception):
+    with pytest.raises(tifftools.exceptions.UnknownTagError):
         get_or_create_tag(-1)
-    with pytest.raises(Exception):
+    with pytest.raises(tifftools.exceptions.UnknownTagError):
         get_or_create_tag(70000)
-    with pytest.raises(Exception):
+    with pytest.raises(tifftools.exceptions.UnknownTagError):
         get_or_create_tag('notatag')
     get_or_create_tag(70000, upperLimit=False)

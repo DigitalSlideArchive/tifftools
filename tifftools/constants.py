@@ -558,18 +558,21 @@ GeoTiffGeoKey = TiffConstantSet(TiffTag, {
     5120: {'name': 'CoordinateEpoch', 'altnames': {'CoordinateEpochGeoKey'}, 'datatype': Datatype.DOUBLE},
 })
 
+
 def EstimateJpegQuality(jpegTables):
     try:
         qtables = jpegTables.split(b'\xff\xdb', 1)[1]
         qtables = qtables[2:struct.unpack('>H', qtables[:2])[0]]
         # Only process the first table
         if not (qtables[0] & 0xF):
-            values = struct.unpack('>64' + ('H' if qtables[0] else 'B'), qtables[1:1 + 64 * (2 if qtables[0] else 1)])
+            values = struct.unpack(
+                '>64' + ('H' if qtables[0] else 'B'), qtables[1:1 + 64 * (2 if qtables[0] else 1)])
             if values[58] < 100:
                 return int(100 - values[58] / 2)
             return int(5000.0 / 2.5 / values[15])
     except Exception:
         pass
+
 
 def GeoKeysToDict(keys, ifd, dest=None, linePrefix=''):
     """
@@ -611,8 +614,11 @@ def GeoKeysToDict(keys, ifd, dest=None, linePrefix=''):
             result[name] = val[:-1] if val[-1:] == '|' else val
     if dest:
         for key, value in result.items():
-            dest.write('\n%s%s: %s' % (linePrefix, key, value if isinstance(value, str) else ' '.join(str(v) for v in value)))
+            dest.write('\n%s%s: %s' % (
+                linePrefix, key, value if isinstance(value, str) else
+                ' '.join(str(v) for v in value)))
     return result
+
 
 Tag = TiffConstantSet(TiffTag, {
     254: {'name': 'NewSubfileType', 'altnames': {'SubfileType'}, 'datatype': Datatype.LONG, 'count': 1, 'bitfield': NewSubfileType, 'desc': 'A general indication of the kind of data contained in this subfile', 'default': 0},
@@ -861,7 +867,8 @@ Tag = TiffConstantSet(TiffTag, {
     65439: {'name': 'NDPI_FocusPoints', 'source': 'tifffile.py'},
     65440: {'name': 'NDPI_FocusPointRegions', 'source': 'tifffile.py'},
     65441: {'name': 'NDPI_CaptureMode', 'source': 'tifffile.py'},
-    65442: {'name': 'NDPI_NDPSN', 'altnames': {'NDPI_ScannerSerialNumber'}, 'source': 'hamamatsu'},  # not official name
+    # NDPI_NDPSN is not not official name
+    65442: {'name': 'NDPI_NDPSN', 'altnames': {'NDPI_ScannerSerialNumber'}, 'source': 'hamamatsu'},
     65444: {'name': 'NDPI_JpegQuality', 'source': 'tifffile.py'},
     65445: {'name': 'NDPI_RefocusInterval', 'source': 'tifffile.py'},
     65446: {'name': 'NDPI_FocusOffset', 'source': 'tifffile.py'},
