@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.8
+
+### Improvements
+- Add some aperio tags found in sample file ([#81](../../pull/81))
+
 ## Version 1.3.7
 
 ### Improvements

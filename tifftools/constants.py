@@ -846,6 +846,12 @@ Tag = TiffConstantSet(TiffTag, {
     50908: {'name': 'TIFF_RSID'},
     50909: {'name': 'GEO_METADATA'},
     50933: {'name': 'TIFFTAG_EXTRACAMERAPROFILES'},
+    # Aperio tags found in sample files but may not be official
+    55000: {'name': 'AperioUnknown55000', 'source': 'sample svs', 'datatype': Datatype.SLONG},
+    55001: {'name': 'AperioMagnification', 'source': 'sample svs'},
+    55002: {'name': 'AperioMPP', 'source': 'sample svs', 'datatype': Datatype.DOUBLE},
+    55003: {'name': 'AperioScanScopeID', 'source': 'sample svs'},
+    55004: {'name': 'AperioDate', 'source': 'sample svs'},
     # Hamamatsu tags
     65324: {'name': 'NDPI_OffsetHighBytes', 'source': 'tifffile.py', 'ndpi_offset': True},
     65325: {'name': 'NDPI_ByteCountHighBytes', 'source': 'tifffile.py', 'ndpi_offset': True},
