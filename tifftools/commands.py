@@ -706,7 +706,7 @@ use 'sample.tiff,1'."""
     # If argcomplete is optionally installed, support bash completion.
     # Compelteion installation will be something like
     #   eval "$(register-python-argcomplete tifftools)"
-    # See argcompelte's documentation.
+    # See argcomplete's documentation.
     try:
         import argcomplete
         argcomplete.autocomplete(mainParser)
