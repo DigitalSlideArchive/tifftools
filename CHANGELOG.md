@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.3.9
+
+### Improvements
+- Don't repeat bytes for immediately repeated byte series ([#82](../../pull/82))
+
 ## Version 1.3.8
 
 ### Improvements
