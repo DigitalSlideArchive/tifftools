@@ -842,6 +842,8 @@ Tag = TiffConstantSet(TiffTag, {
     50832: {'name': 'ASSHOTPREPROFILEMATRIX'},
     50833: {'name': 'CURRENTICCPROFILE'},
     50834: {'name': 'CURRENTPREPROFILEMATRIX'},
+    50838: {'name': 'ImageJMetadataByteCounts', 'altnames': {'IJMetadataByteCounts'}, 'datatype': (Datatype.SHORT, Datatype.LONG, Datatype.LONG8)},
+    50839: {'name': 'ImageJMetadata', 'altnames': {'ImageJMetadata'}, 'datatype': Datatype.BYTE},
     50844: {'name': 'RPCCOEFFICIENT'},
     50908: {'name': 'TIFF_RSID'},
     50909: {'name': 'GEO_METADATA'},
