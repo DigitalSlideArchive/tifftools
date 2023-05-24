@@ -118,6 +118,23 @@ def test_write_bigtiff_with_offset_data(tmp_path):
     assert destinfo['bigtiff'] is True
 
 
+def test_write_bigtiff_with_offset_data_ifdsfirst(tmp_path):
+    path = datastore.fetch('hamamatsu.ndpi')
+    info = tifftools.read_tiff(path)
+    info['ifds'][0]['tags'][tifftools.Tag.FreeOffsets.value] = {
+        'datatype': tifftools.Datatype.LONG,
+        'data': list(range(8, 8 + 256)),
+    }
+    info['ifds'][0]['tags'][tifftools.Tag.FreeByteCounts.value] = {
+        'datatype': tifftools.Datatype.LONG,
+        'data': [16777216] * 256,
+    }
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath, ifdsFirst=True)
+    destinfo = tifftools.read_tiff(destpath)
+    assert destinfo['bigtiff'] is True
+
+
 def test_write_bigtiff_with_repeated_offset_data(tmp_path):
     path = datastore.fetch('hamamatsu.ndpi')
     info = tifftools.read_tiff(path)
