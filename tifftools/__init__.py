@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 
 from .commands import main, tiff_concat, tiff_dump, tiff_info, tiff_merge, tiff_set, tiff_split
@@ -6,11 +7,7 @@ from .exceptions import (MustBeBigTiffError, MustBeBigTiffException, TifftoolsEr
                          TifftoolsException, UnknownTagError, UnknownTagException)
 from .tifftools import read_tiff, write_tiff
 
-try:
-    from importlib.metadata import version as _importlib_version
-except ImportError:
-    from importlib_metadata import version as _importlib_version
-__version__ = _importlib_version(__name__)
+__version__ = importlib.metadata.version(__name__)
 
 
 logger = logging.getLogger(__name__)

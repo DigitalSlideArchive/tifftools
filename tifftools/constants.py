@@ -77,7 +77,7 @@ class TiffTag(TiffConstant):
         return Datatype.IFD in datatypes or Datatype.IFD8 in datatypes
 
 
-class TiffConstantSet(object):
+class TiffConstantSet:
     def __init__(self, setNameOrClass, setDict):
         """
         Create a set of TiffConstant values.

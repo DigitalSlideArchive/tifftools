@@ -25,22 +25,6 @@ commands:
           command: codecov --tries 10 --required --disable search pycov gcov --root project --file .tox/coverage/py_coverage.xml
 
 jobs:
-  py36:
-    docker:
-      - image: python:3.6
-    steps:
-      - checkout
-      - tox:
-          env: py36
-      - coverage
-  py37:
-    docker:
-      - image: python:3.7
-    steps:
-      - checkout
-      - tox:
-          env: py37
-      - coverage
   py38:
     docker:
       - image: python:3.8
@@ -73,13 +57,13 @@ jobs:
       - tox:
           env: py311
       - coverage
-  pypy37:
+  py312:
     docker:
-      - image: pypy:3.7
+      - image: python:3.12
     steps:
       - checkout
       - tox:
-          env: test-pypy37
+          env: py312
       - coverage
   pypy38:
     docker:
@@ -96,6 +80,14 @@ jobs:
       - checkout
       - tox:
           env: test-pypy39
+      - coverage
+  pypy310:
+    docker:
+      - image: pypy:3.10
+    steps:
+      - checkout
+      - tox:
+          env: test-pypy310
       - coverage
   lint_and_docs:
     docker:
@@ -122,20 +114,6 @@ workflows:
   version: 2
   ci:
     jobs:
-      - py36:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore:
-                - gh-pages
-      - py37:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore:
-                - gh-pages
       - py38:
           filters:
             tags:
@@ -164,7 +142,7 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - pypy37:
+      - py312:
           filters:
             tags:
               only: /^v.*/
@@ -185,6 +163,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - pypy310:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - lint_and_docs:
           filters:
             tags:
@@ -194,15 +179,14 @@ workflows:
                 - gh-pages
       - release:
           requires:
-            - py36
-            - py37
             - py38
             - py39
             - py310
             - py311
-            - pypy37
+            - py312
             - pypy38
             - pypy39
+            - pypy310
             - lint_and_docs
           filters:
             tags:

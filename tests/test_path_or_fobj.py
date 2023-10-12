@@ -32,7 +32,7 @@ def test_OpenPathOrFobj_stdin(monkeypatch):
     mock_stdin.seek(0)
     mock_stdin.seekable = lambda: False
 
-    class Namespace(object):
+    class Namespace:
         pass
 
     mock_obj = Namespace()
