@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 1.4.0
+
+### Improvements
+- Memoize rawdata to reduce memory use ([#89](../../pull/89))
+- Update supported python versions (drop Python <3.8, add Python 3.12) ([#88](../../pull/88))
+
 ## Version 1.3.10
 
 ### Improvements
