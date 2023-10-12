@@ -78,7 +78,7 @@ def test_tiff_set_stdin(tmp_path, monkeypatch):
     mock_stdin.seek(0)
     mock_stdin.seekable = lambda: False
 
-    class Namespace(object):
+    class Namespace:
         pass
 
     mock_obj = Namespace()

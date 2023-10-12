@@ -57,7 +57,7 @@ Library Functions
 Installation
 ============
 
-``tifftools`` is available on PyPI and conda-forge. 
+``tifftools`` is available on PyPI and conda-forge.
 
 To install with pip from PyPI::
 
@@ -88,7 +88,7 @@ purposes.  The libtiff command tools have significant limitations: ``tiffdump``
 and ``tiffinfo`` require multiple commands to see information from all IFDs.
 ``tiffset`` does not remove data from a file; rather it appends to the file to
 only reference new data, leaving the old values inside the file.  ``tiffsplit``
-doesn't keep tags it doesn't recognize, loosing data.  ``tiffcp`` always
+doesn't keep tags it doesn't recognize, losing data.  ``tiffcp`` always
 reencodes images and will fail for compression types it does not know.
 
 Likewise, there is a wide variety of EXIF tools.  For the most part, these only
@@ -116,7 +116,7 @@ dereferenced and is still in the file:
 
     $ grep 'secret' photograph.tif  || echo 'not present'
     not present
-    $ tiffset -s ImageDescription "secret phrase" photograph.tif 
+    $ tiffset -s ImageDescription "secret phrase" photograph.tif
     $ tiffinfo photograph.tif | grep ImageDescription
       ImageDescription: secret phrase
     $ grep 'secret' photograph.tif  || echo 'not present'
@@ -133,7 +133,7 @@ Whereas, with ``tifftools``:
 
     $ grep 'secret' photograph.tif || echo 'not present'
     not present
-    $ tifftools set -y -s ImageDescription "secret phrase" photograph.tif 
+    $ tifftools set -y -s ImageDescription "secret phrase" photograph.tif
     $ tiffinfo photograph.tif | grep ImageDescription
       ImageDescription: secret phrase
     $ grep 'secret' photograph.tif || echo 'not present'
