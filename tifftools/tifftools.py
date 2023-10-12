@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import functools
 import logging
 import os
 import struct
@@ -205,6 +206,20 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
     return nextifd
 
 
+@functools.lru_cache(maxsize=10)
+def memoize_rawdata(rawdata):
+    """
+    Deduplicate large chunks of repeated rawdata.
+
+    If data is repeated, this will return a reference to the first instance,
+    which will avoid allocating memory for each repetition.
+
+    :param rawdata: an object to possibly deduplicate
+    :returns: an equivalent object
+    """
+    return rawdata
+
+
 def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
     """
     Read data from tags; read subifds.
@@ -234,7 +249,10 @@ def read_ifd_tag_data(tiff, info, ifd, tagSet=Tag):
                 taginfo['data'] = rawdata
             # TODO: Handle null-separated lists
         else:
-            taginfo['data'] = rawdata
+            if len(rawdata) > 100000:
+                taginfo['data'] = memoize_rawdata(rawdata)
+            else:
+                taginfo['data'] = rawdata
         if ((hasattr(tag, 'isIFD') and tag.isIFD()) or
                 Datatype[taginfo['datatype']] in (Datatype.IFD, Datatype.IFD8)):
             taginfo['ifds'] = []
