@@ -530,7 +530,7 @@ def write_ifd(dest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag, ifdsFirst=False):
                     data = struct.pack(bom + pack * count, *data)
                 elif Datatype[taginfo['datatype']] == Datatype.ASCII:
                     # Handle null-seperated lists
-                    data = data.encode() + b'\x00'
+                    data = (data if isinstance(data, bytes) else data.encode()) + b'\x00'
                     count = len(data)
                 else:
                     data = taginfo['data']
