@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.4.1
+
+### Improvements
+- Harden writing raw data to ascii format tags ([#90](../../pull/90))
+
 ## Version 1.4.0
 
 ### Improvements
