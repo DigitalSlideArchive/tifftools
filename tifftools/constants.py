@@ -28,9 +28,10 @@ class TiffConstant(int):
         return '%d (0x%X)' % (self.value, self.value)
 
     def __getitem__(self, key):
-        if hasattr(self, str(key)):
+        try:
             return getattr(self, str(key))
-        raise KeyError(key)
+        except AttributeError:
+            raise KeyError(key)
 
     def __int__(self):
         return self.value
@@ -61,9 +62,7 @@ class TiffConstant(int):
         return hash((type(self).__name__, self.value))
 
     def get(self, key, default=None):
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default
+        return getattr(self, str(key), default)
 
 
 class TiffTag(TiffConstant):

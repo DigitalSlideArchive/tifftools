@@ -59,7 +59,9 @@ def tiff_concat(source, output, overwrite=False, **kwargs):
         nextInfo = read_tiff(path)
         ifds.extend(nextInfo['ifds'])
     _apply_flags_to_ifd(ifds, **kwargs)
-    write_tiff(ifds, output, allowExisting=overwrite, ifdsFirst=kwargs.get('ifdsfirst', False))
+    write_tiff(ifds, output, allowExisting=overwrite,
+               ifdsFirst=kwargs.get('ifdsfirst', False),
+               dedup=kwargs.get('dedup', False))
 
 
 def _tiff_dump_tag(tag, taginfo, linePrefix, max, dest=None, max_text=None, ifd=None):
@@ -360,7 +362,8 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
         logger.info('Writing %s', outputPath)
         _apply_flags_to_ifd(ifd, **kwargs)
         write_tiff(ifd, outputPath, allowExisting=overwrite,
-                   ifdsFirst=kwargs.get('ifdsfirst', False))
+                   ifdsFirst=kwargs.get('ifdsfirst', False),
+                   dedup=kwargs.get('dedup', False))
 
 
 def _value_to_types_numeric(results):
@@ -527,7 +530,9 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
             else:
                 ifd['tags'][int(tag)] = setinfo['ifds'][0]['tags'][int(tag)]
     _apply_flags_to_ifd(info, **kwargs)
-    write_tiff(info, output, allowExisting=overwrite, ifdsFirst=kwargs.get('ifdsfirst', False))
+    write_tiff(info, output, allowExisting=overwrite,
+               ifdsFirst=kwargs.get('ifdsfirst', False),
+               dedup=kwargs.get('dedup', False))
 
 
 def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
@@ -599,6 +604,9 @@ use 'sample.tiff,1'."""
     }, {
         'args': ('--ifdsfirst', '--ifds-first'),
         'kwargs': dict(action='store_true', help='Store IFDs before their related data.'),
+    }, {
+        'args': ('--dedup', '--deduplicate'),
+        'kwargs': dict(action='store_true', help='Do not repeat identical data.'),
     }, {
         'args': ('--stop-on-warning', '-X'),
         'kwargs': dict(
