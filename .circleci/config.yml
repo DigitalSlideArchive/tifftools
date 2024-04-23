@@ -95,7 +95,7 @@ jobs:
     steps:
       - checkout
       - tox:
-          env: flake8
+          env: lint
   release:
     docker:
       - image: python:3.8
