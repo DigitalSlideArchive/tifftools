@@ -4,6 +4,8 @@
 
 ### Features
 - Add a deduplicate option to avoid writing all identical data blocks ([#92](../../pull/92))
+
+### Improvements
 - Refactor how ifds-first option emits data so it is closer to the COGs standard ([#92](../../pull/92))
 
 ## Version 1.4.1
