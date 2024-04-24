@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.5.1
+
+### Improvements
+- Speed up deduplication process ([#93](../../pull/93))
+
 ## Version 1.5.0
 
 ### Features
