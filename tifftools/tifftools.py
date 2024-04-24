@@ -14,7 +14,7 @@ from .path_or_fobj import OpenPathOrFobj, is_filelike_object
 
 logger = logging.getLogger(__name__)
 
-_DEDUP_HASH_METHOD = 'sha256'
+_DEDUP_HASH_METHOD = 'sha1'
 
 
 def check_offset(filelen, offset, length):
@@ -324,7 +324,6 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
         with tempfile.NamedTemporaryFile(
                 prefix=os.path.basename(path), dir=os.path.dirname(path)) as temppath:
             path = temppath.name
-    rewriteBigtiff = False
     try:
         with OpenPathOrFobj(path, 'wb') as dest:
             bom = '>' if bigEndian else '<'
@@ -337,26 +336,27 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
                 ifdPtr = len(header) - 4
             dest.write(header)
             origifdPtr = ifdPtr
-            for datadest, ifddest in _ifdsPass(ifdsFirst, dest):
-                ifdPtr = origifdPtr
-                if bool(dedup):
-                    dedup = {'hashes': {}, 'reused': 0}
-                for ifd in ifds:
-                    try:
+            try:
+                for datadest, ifddest in _ifdsPass(ifdsFirst, dest):
+                    ifdPtr = origifdPtr
+                    if bool(dedup):
+                        dedup = {
+                            'hashes': {}, 'reused': 0,
+                            'hashlog': {} if not isinstance(dedup, dict) else
+                            dedup.get('hashlog', {})}
+                    for ifd in ifds:
                         ifdPtr = write_ifd(
                             datadest, ifddest, bom, bigtiff, ifd, ifdPtr,
                             ifdsFirst=ifdsFirst, dedup=dedup)
-                    except MustBeBigTiffError:
-                        # This can only be raised if bigtiff is false
-                        rewriteBigtiff = True
-                        break
-            if rewriteBigtiff:
+            except MustBeBigTiffError:
+                # This can only be raised if bigtiff is false
                 dest.seek(0)
                 dest.truncate(0)
                 write_tiff(ifds, dest, bigEndian, True, ifdsFirst=ifdsFirst, dedup=bool(dedup))
-            elif dedup and dedup['reused']:
-                logger.info('Deduplication reused %d block(s)', dedup['reused'])
-    except Exception:
+            else:
+                if dedup and dedup['reused']:
+                    logger.info('Deduplication reused %d block(s)', dedup['reused'])
+    except BaseException:
         if path != finalpath:
             os.unlink(path)
         raise
@@ -493,7 +493,7 @@ def _writeDeferredData(bigtiff, bom, dest, ifd, ifdrecord, deferredData):
     return ifdrecord
 
 
-def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,
+def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,  # noqa
               ifdsFirst=False, dedup=False):
     """
     Write an IFD to a TIFF file.  This copies image data from other tiff files.
@@ -519,9 +519,6 @@ def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,
     """
     ptrpack = 'Q' if bigtiff else 'L'
     tagdatalen = 8 if bigtiff else 4
-    # dest.seek(0, os.SEEK_END)
-    # origPos = dest.tell()
-    # origdest = ifddest = dest
     nextifdPtr = None
     ifdrecord = struct.pack(bom + ('Q' if bigtiff else 'H'), len(ifd['tags']))
     subifdPtrs = {}
@@ -598,7 +595,12 @@ def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,
                 if tag.isIFD() or taginfo.get('datatype') in (Datatype.IFD, Datatype.IFD8):
                     subifdPtrs[tag] = tpos
                 elif dedup:
-                    h = hashlib.new(_DEDUP_HASH_METHOD, data).digest()
+                    hashkey = hash(data)
+                    if hashkey in dedup['hashlog']:
+                        h = dedup['hashlog'][hashkey]
+                    else:
+                        h = hashlib.new(_DEDUP_HASH_METHOD, data).digest()
+                        dedup['hashlog'][hashkey] = h
                     if h in dedup['hashes']:
                         tpos = dedup['hashes'][h]
                     else:
@@ -728,19 +730,23 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
                 offset, idx = offsetList[olidx]
                 length += lengths[idx]
             if dedup:
-                readlen = length
-                h = hashlib.new(_DEDUP_HASH_METHOD)
-                while readlen:
-                    data = src.read(min(readlen, COPY_CHUNKSIZE))
-                    h.update(data)
-                    readlen -= len(data)
-                h = h.digest()
+                hashkey = (hash(getattr(src, 'name', src)), offset)
+                if hashkey in dedup['hashlog']:
+                    h = dedup['hashlog'][hashkey]
+                else:
+                    readlen = length
+                    h = hashlib.new(_DEDUP_HASH_METHOD)
+                    while readlen:
+                        data = src.read(min(readlen, COPY_CHUNKSIZE))
+                        h.update(data)
+                        readlen -= len(data)
+                    h = h.digest()
+                    dedup['hashlog'][hashkey] = h
                 if h in dedup['hashes']:
                     hpos = dedup['hashes'][h]
                     for tidx in tells['idx']:
                         destOffsets[tidx] = destOffsets[tidx] - tells['pos'] + hpos
                     dedup['reused'] += 1
-                    logger.debug('Deduplication: %d', dedup['reused'])
                     length = 0
                 else:
                     dedup['hashes'][h] = tells['pos']
