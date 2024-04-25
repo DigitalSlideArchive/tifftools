@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.5.2
+
+### Improvements
+- Simplify the deduplication code ([#94](../../pull/94))
+
 ## Version 1.5.1
 
 ### Improvements

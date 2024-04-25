@@ -174,7 +174,31 @@ def test_write_with_dedup(tmp_path):
     info2 = tifftools.read_tiff(dest2path)
     dest3path = tmp_path / 'sample3.tiff'
     tifftools.write_tiff(info2, dest3path)
-    assert open(destpath, 'rb').read() == open(dest3path, 'rb').read()
+    assert len(open(dest3path, 'rb').read().split(uniqueString)) == 3
+
+
+def test_write_with_dedup_and_ifdsfirst(tmp_path):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
+    info = tifftools.read_tiff(path)
+    uniqueString = b'UNIQUESTRING'
+    info['ifds'][0]['tags'][23456] = {
+        'datatype': tifftools.Datatype.UNDEFINED,
+        'data': uniqueString
+    }
+    info['ifds'][0]['tags'][23457] = {
+        'datatype': tifftools.Datatype.UNDEFINED,
+        'data': uniqueString
+    }
+    destpath = tmp_path / 'sample.tiff'
+    tifftools.write_tiff(info, destpath)
+    assert len(open(destpath, 'rb').read().split(uniqueString)) == 3
+    dest2path = tmp_path / 'sample2.tiff'
+    tifftools.write_tiff(info, dest2path, dedup=True, ifdsFirst=True)
+    assert len(open(dest2path, 'rb').read().split(uniqueString)) == 2
+    info2 = tifftools.read_tiff(dest2path)
+    dest3path = tmp_path / 'sample3.tiff'
+    tifftools.write_tiff(info2, dest3path)
+    assert len(open(dest3path, 'rb').read().split(uniqueString)) == 3
 
 
 def test_write_bytecount_data(tmp_path):

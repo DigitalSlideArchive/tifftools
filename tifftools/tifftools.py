@@ -705,6 +705,8 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
     offsetList = sorted([(offset, idx) for idx, offset in enumerate(offsets)])
     olidx = 0
     lastOffset = lastLength = lastOffsetIdx = None
+    blocks = []
+    desttell = dest.tell()
     while olidx < len(offsetList):
         offset, idx = offsetList[olidx]
         length = lengths[idx]
@@ -715,20 +717,7 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
                 olidx += 1
                 continue
             lastOffset, lastLength, lastOffsetIdx = offset, length, idx
-            src.seek(offset)
-            destOffsets[idx] = dest.tell()
-            tells = {'idx': [idx], 'pos': destOffsets[idx], 'offset': offset}
-            # Group reads when possible; the biggest overhead is in the actual
-            # read call
-            while (not dedup and olidx + 1 < len(offsetList) and
-                   offsetList[olidx + 1][0] == offsetList[olidx][0] + lengths[idx] and
-                   check_offset(srclen, offsetList[olidx + 1][0],
-                                lengths[offsetList[olidx + 1][1]])):
-                destOffsets[offsetList[olidx + 1][1]] = destOffsets[idx] + lengths[idx]
-                tells['idx'].append(offsetList[olidx + 1][1])
-                olidx += 1
-                offset, idx = offsetList[olidx]
-                length += lengths[idx]
+            destOffsets[idx] = desttell
             if dedup:
                 hashkey = (hash(getattr(src, 'name', src)), offset)
                 if hashkey in dedup['hashlog']:
@@ -736,6 +725,7 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
                 else:
                     readlen = length
                     h = hashlib.new(_DEDUP_HASH_METHOD)
+                    src.seek(offset)
                     while readlen:
                         data = src.read(min(readlen, COPY_CHUNKSIZE))
                         h.update(data)
@@ -744,16 +734,24 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
                     dedup['hashlog'][hashkey] = h
                 if h in dedup['hashes']:
                     hpos = dedup['hashes'][h]
-                    for tidx in tells['idx']:
-                        destOffsets[tidx] = destOffsets[tidx] - tells['pos'] + hpos
+                    destOffsets[idx] = hpos
                     dedup['reused'] += 1
                     length = 0
                 else:
-                    dedup['hashes'][h] = tells['pos']
-                    src.seek(tells['offset'])
-            while length:
-                data = src.read(min(length, COPY_CHUNKSIZE))
-                dest.write(data)
-                length -= len(data)
+                    dedup['hashes'][h] = destOffsets[idx]
+            # Group reads when possible; the biggest overhead is in the actual
+            # read call
+            if length:
+                if len(blocks) and offset == blocks[-1][0] + blocks[-1][1]:
+                    blocks[-1] = (blocks[-1][0], blocks[-1][1] + length)
+                else:
+                    blocks.append((offset, length))
+                desttell += length
         olidx += 1
+    for offset, length in blocks:
+        src.seek(offset)
+        while length:
+            data = src.read(min(length, COPY_CHUNKSIZE))
+            dest.write(data)
+            length -= len(data)
     return destOffsets
