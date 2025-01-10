@@ -311,9 +311,11 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
     :param dedup: if False, all data is written.  If True, data blocks that are
         identical are only written once.
     """
+    ndpi = False
     if isinstance(ifds, dict):
         bigEndian = ifds.get('bigEndian') if bigEndian is None else bigEndian
         bigtiff = ifds.get('bigtiff') if bigtiff is None else bigtiff
+        ndpi = (ifds.get('ndpi') or False) and not bigtiff
         ifds = ifds.get('ifds', [ifds])
     bigEndian = ifds[0].get('bigEndian', False) if bigEndian is None else bigEndian
     bigtiff = ifds[0].get('bigtiff', False) if bigtiff is None else bigtiff
@@ -332,8 +334,8 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
                 header += struct.pack(bom + 'HHHQ', 0x2B, 8, 0, 0)
                 ifdPtr = len(header) - 8
             else:
-                header += struct.pack(bom + 'HL', 0x2A, 0)
-                ifdPtr = len(header) - 4
+                header += struct.pack(bom + ('HL' if not ndpi else 'HQ'), 0x2A, 0)
+                ifdPtr = len(header) - (4 if not ndpi else 8)
             dest.write(header)
             origifdPtr = ifdPtr
             try:
@@ -347,7 +349,7 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
                     for ifd in ifds:
                         ifdPtr = write_ifd(
                             datadest, ifddest, bom, bigtiff, ifd, ifdPtr,
-                            ifdsFirst=ifdsFirst, dedup=dedup)
+                            ifdsFirst=ifdsFirst, dedup=dedup, ndpi=ndpi)
             except MustBeBigTiffError:
                 # This can only be raised if bigtiff is false
                 dest.seek(0)
@@ -494,7 +496,7 @@ def _writeDeferredData(bigtiff, bom, dest, ifd, ifdrecord, deferredData):
 
 
 def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,  # noqa
-              ifdsFirst=False, dedup=False):
+              ifdsFirst=False, dedup=False, ndpi=False):
     """
     Write an IFD to a TIFF file.  This copies image data from other tiff files.
 
@@ -515,6 +517,7 @@ def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,  # noqa
         hashed data that have been written and values of the offsets where it
         was written, and 'reused' is a count of data blocks that were
         deduplicated.
+    :param ndpi: if True and this is not a bigtiff, pad the ifd pointers.
     :return: the ifdPtr for the next ifd that could be written.
     """
     ptrpack = 'Q' if bigtiff else 'L'
@@ -625,16 +628,20 @@ def write_ifd(datadest, ifddest, bom, bigtiff, ifd, ifdPtr, tagSet=Tag,  # noqa
     ifddest.seek(ifdpos if ifdsFirst else 0, os.SEEK_SET if ifdsFirst else os.SEEK_END)
     ifddest.write(ifdrecord)
     nextifdPtr = ifddest.tell()
+    if ndpi:
+        ptrpack = 'Q'
     ifddest.write(struct.pack(bom + ptrpack, 0))
+    if ndpi:
+        ifddest.write(b'\x00\x00\x00\x00' * len(ifd['tags']))
     ifddest.seek(0, os.SEEK_END)
     write_sub_ifds(datadest, ifddest, bom, bigtiff, ifd,
                    ifdpos if ifdsFirst else pos, subifdPtrs,
-                   ifdsFirst=ifdsFirst, dedup=dedup)
+                   ifdsFirst=ifdsFirst, dedup=dedup, ndpi=ndpi)
     return nextifdPtr
 
 
 def write_sub_ifds(datadest, ifddest, bom, bigtiff, ifd, parentPos, subifdPtrs,
-                   tagSet=Tag, ifdsFirst=False, dedup=False):
+                   tagSet=Tag, ifdsFirst=False, dedup=False, ndpi=False):
     """
     Write any number of SubIFDs to a TIFF file.  These can be based on tags
     other than the SubIFD tag.
@@ -661,6 +668,7 @@ def write_sub_ifds(datadest, ifddest, bom, bigtiff, ifd, parentPos, subifdPtrs,
         hashed data that have been written and values of the offsets where it
         was written, and 'reused' is a count of data blocks that were
         deduplicated.
+    :param ndpi: if True and this is not a bigtiff, pad the ifd pointers.
     """
     tagdatalen = 8 if bigtiff else 4
     for tag, subifdPtr in subifdPtrs.items():
@@ -674,7 +682,7 @@ def write_sub_ifds(datadest, ifddest, bom, bigtiff, ifd, parentPos, subifdPtrs,
                 nextSubifdPtr = write_ifd(
                     datadest, ifddest, bom, bigtiff, ifdInSubifd,
                     nextSubifdPtr, getattr(tag, 'tagset', None),
-                    ifdsFirst=ifdsFirst, dedup=dedup)
+                    ifdsFirst=ifdsFirst, dedup=dedup, ndpi=ndpi)
             subifdPtr += tagdatalen
 
 
