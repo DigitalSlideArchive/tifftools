@@ -1,6 +1,6 @@
-======================================================
-Tiff Tools |build-status| |codecov-io| |license-badge|
-======================================================
+==================================================================
+Tiff Tools |build-status| |codecov-io| |license-badge| |doi-badge|
+==================================================================
 
 Pure Python tools for reading and writing all TIFF IFDs, sub-IFDs, and tags.
 
@@ -192,3 +192,7 @@ Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's
 .. |license-badge| image:: https://img.shields.io/badge/license-Apache%202-blue.svg
   :target: https://raw.githubusercontent.com/DigitalSlideArchive/tifftools/master/LICENSE
   :alt: License
+
+.. |doi-badge| image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.11068609-blue.svg
+   :target: https://zenodo.org/doi/10.5281/zenodo.11068609
+
