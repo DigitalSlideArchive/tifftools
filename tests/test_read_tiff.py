@@ -11,7 +11,7 @@ from .datastore import datastore
 LOGGER = logging.getLogger('tifftools')
 
 
-@pytest.mark.parametrize('test_path,num_ifds', [
+@pytest.mark.parametrize(('test_path', 'num_ifds'), [
     ('aperio_jp2k.svs', 6),
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
@@ -25,7 +25,7 @@ def test_read_tiff(test_path, num_ifds):
     assert len(info['ifds']) == num_ifds
 
 
-@pytest.mark.parametrize('test_path,msg', [
+@pytest.mark.parametrize(('test_path', 'msg'), [
     ('notafile.tif', 'No such file'),
     ('bad_header1.tif', 'Not a known tiff header'),
     ('bad_header2.tif', 'Unexpected offset size'),
@@ -45,7 +45,7 @@ def test_read_tiff_bad_stream():
     assert 'Not a known tiff header' in str(exc.value)
 
 
-@pytest.mark.parametrize('test_path,msg', [
+@pytest.mark.parametrize(('test_path', 'msg'), [
     ('bad_tag_offset.tif', 'from desired offset'),
     ('bad_ifd_offset.tif', 'from desired offset'),
     ('bad_datatype.tif', 'Unknown datatype'),

@@ -34,7 +34,7 @@ def test_split_sub_subifds(tmp_path):
     assert len(info['ifds']) == 1
 
 
-@pytest.mark.parametrize('test_path,no_warnings', [
+@pytest.mark.parametrize(('test_path', 'no_warnings'), [
     ('aperio_jp2k.svs', True),
     ('hamamatsu.ndpi', False),
     ('philips.ptif', True),
@@ -82,7 +82,7 @@ def test_split_and_merge_by_ifd(tmp_path):
                 break
 
 
-@pytest.mark.parametrize('prefix,num,neededChars,result', [
+@pytest.mark.parametrize(('prefix', 'num', 'neededChars', 'result'), [
     (None, 0, 3, './aaa.tif'),
     (None, 1, 4, './aaab.tif'),
     (None, 26, 3, './aba.tif'),

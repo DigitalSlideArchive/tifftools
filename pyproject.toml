@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
+exclude = [
+    "build",
+    "*/web_client/*",
+    "*/*egg*/*",
+]
+lint.ignore = [
+    "B017",  # assert raises exception
+    "B026",  # star arg unpacking after keyword arg
+    "B904",  # raise without from inside except
+    "C408",  # unnecessary collection call (would prohibit dict())
+    "C901",  # complexity
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D200",
+    "D203",
+    "D205",
+    "D212",
+    "D213",
+    "D400",
+    "D401",
+    "D404",
+    "D415",
+    "E501",  # line length
+    "E741",  # ambiguous variable name
+    "G002",  # logging
+    "G004",  # logging
+    "NPY002",  # numpy-legacy-random
+    "PT011",  # pytest-raises-too-broad
+    "PT012",  # pytest-raises-with-multiple-statements
+    "PT017",  # pytest-assert-in-except
+    "RET503",  # implict-return on function that can return non-none
+    "RET504",  # unncessary-assign before return
+]
+line-length = 100
+lint.select = [
+    "ASYNC",
+    "B",  # bugbear
+    "C4",
+    "C90",  # mccabe
+    "COM",
+    "D",  # pydocstyle
+    "DTZ",
+    "E",  # pycodestyle errors
+    "EM",
+    "EXE",
+    "F",  # pyflakes
+    "G",
+    # "I",  # isort
+    "ISC",
+    # "N",  # pep8-naming
+    "NPY",
+    "PIE",
+    "PT",
+    "PYI",
+    "Q",  # flake8-quotes
+    "RET",
+    "RSE",
+    "T",  # print statements
+    "W",  # pycodestyle warnings
+    "YTT",  # flake8-2020
+]
+
+[tool.ruff.lint.per-file-ignores]
+# allow "useless expressions" as it shows output
+# allow non-top level imports
+# allow long lines
+".circleci/dcm4chee/*.py" = ["T201", "T203"]
+"docs/*.ipynb" = ["B018", "E402", "E501", "T201", "T203"]
+"docs/*.py" = ["E501", "T201", "T203"]
+"examples/*" = ["T201", "T203"]
+"test/*" = ["T201", "T203"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 14
+
+[tool.yamlfix]
+line_length = 200
+preserve_quotes = true
+sequence_style = "block_style"

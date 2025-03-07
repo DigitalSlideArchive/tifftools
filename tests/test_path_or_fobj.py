@@ -8,7 +8,7 @@ import pytest
 from tifftools.path_or_fobj import OpenPathOrFobj, is_filelike_object
 
 
-@pytest.mark.parametrize('obj,is_fobj', [
+@pytest.mark.parametrize(('obj', 'is_fobj'), [
     ('-', False),
     (None, False),
     (os.path.realpath(__file__), False),

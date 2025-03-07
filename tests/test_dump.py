@@ -10,7 +10,7 @@ import tifftools
 from .datastore import datastore
 
 
-@pytest.mark.parametrize('test_path,num_ifds', [
+@pytest.mark.parametrize(('test_path', 'num_ifds'), [
     ('aperio_jp2k.svs', 6),
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
@@ -43,7 +43,7 @@ def test_tiff_dump_json(test_path, capsys):
     assert 'ifds' in info
 
 
-@pytest.mark.parametrize('test_path,num_ifds', [
+@pytest.mark.parametrize(('test_path', 'num_ifds'), [
     ('aperio_jp2k.svs', 6),
     ('hamamatsu.ndpi', 12),
     ('philips.ptif', 11),
@@ -62,7 +62,7 @@ def test_tiff_dump_to_stream(test_path, num_ifds):
     assert dest.getvalue() == destinfo.getvalue()
 
 
-@pytest.mark.parametrize('suffix,num_ifds', [
+@pytest.mark.parametrize(('suffix', 'num_ifds'), [
     ('', 9),
     (',0', 1),
     (',1', 7),

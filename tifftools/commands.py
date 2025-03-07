@@ -472,7 +472,7 @@ def _tagspec_to_ifd(tagspec, info, value=None):
             datatype = next((dt for dt in (
                 Datatype.BYTE, Datatype.SHORT, Datatype.LONG, Datatype.LONG8,
                 Datatype.SBYTE, Datatype.SSHORT, Datatype.SLONG, Datatype.SLONG8,
-                Datatype.DOUBLE, Datatype.ASCII
+                Datatype.DOUBLE, Datatype.ASCII,
             ) if dt in valueTypes), Datatype.UNDEFINED)
         if 'datatype' in tag and datatype not in tagDatatypes:
             logger.warning(

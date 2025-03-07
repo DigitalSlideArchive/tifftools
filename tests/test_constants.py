@@ -69,7 +69,7 @@ def test_get_or_create_tag():
     assert isinstance(get_or_create_tag(40000, tifftools.Tag), tifftools.TiffTag)
     assert get_or_create_tag(40000, tifftools.Tag).get('datatype') is None
     assert get_or_create_tag(
-        40000, tifftools.Tag, datatype=tifftools.Datatype.ASCII
+        40000, tifftools.Tag, datatype=tifftools.Datatype.ASCII,
     ).datatype == tifftools.Datatype.ASCII
     assert get_or_create_tag(40000).name == '40000'
     assert isinstance(get_or_create_tag(40000), tifftools.TiffTag)
