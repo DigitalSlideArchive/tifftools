@@ -65,6 +65,14 @@ jobs:
       - tox:
           env: py312
       - coverage
+  py313:
+    docker:
+      - image: python:3.13
+    steps:
+      - checkout
+      - tox:
+          env: py313
+      - coverage
   pypy38:
     docker:
       - image: pypy:3.8
@@ -88,6 +96,14 @@ jobs:
       - checkout
       - tox:
           env: test-pypy310
+      - coverage
+  pypy311:
+    docker:
+      - image: pypy:3.11
+    steps:
+      - checkout
+      - tox:
+          env: test-pypy311
       - coverage
   lint_and_docs:
     docker:
@@ -148,6 +164,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - py313:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - pypy38:
           filters:
             tags:
@@ -169,6 +192,13 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - pypy311:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - lint_and_docs:
           filters:
             tags:
@@ -183,9 +213,11 @@ workflows:
             - py310
             - py311
             - py312
+            - py313
             - pypy38
             - pypy39
             - pypy310
+            - pypy311
             - lint_and_docs
           filters:
             tags:
