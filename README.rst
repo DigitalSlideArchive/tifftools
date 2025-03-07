@@ -195,4 +195,3 @@ Because files are ALWAYS rewritten, ``tifftools`` is slower than libtiff's
 
 .. |doi-badge| image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.11068609-blue.svg
    :target: https://zenodo.org/doi/10.5281/zenodo.11068609
-

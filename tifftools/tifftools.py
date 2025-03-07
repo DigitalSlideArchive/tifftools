@@ -106,7 +106,8 @@ def read_tiff(path):
         if info['bigtiff']:
             offsetsize, zero, nextifd = struct.unpack(bom + 'HHQ', tiff.read(12))
             if offsetsize != 8 or zero != 0:
-                raise TifftoolsError('Unexpected offset size')
+                msg = 'Unexpected offset size'
+                raise TifftoolsError(msg)
         else:
             nextifd = struct.unpack(bom + 'L', tiff.read(4))[0]
         info['firstifd'] = nextifd
@@ -162,7 +163,7 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
     logger.debug(f'read_ifd: {ifdOffset} (0x{ifdOffset:X})')
     bom = info['endianPack']
     if not check_offset(info['size'], ifdOffset, 16 if info['bigtiff'] else 6):
-        return
+        return None
     tiff.seek(ifdOffset)
     # Store the main path here.  This facilitates merging files.
     ifd = {
@@ -320,7 +321,8 @@ def write_tiff(ifds, path, bigEndian=None, bigtiff=None, allowExisting=False,
     finalpath = path
     if not is_filelike_object(path) and os.path.exists(path):
         if not allowExisting:
-            raise TifftoolsError('File already exists')
+            msg = 'File already exists'
+            raise TifftoolsError(msg)
         with tempfile.NamedTemporaryFile(
                 prefix=os.path.basename(path), dir=os.path.dirname(path)) as temppath:
             path = temppath.name
@@ -434,7 +436,8 @@ def _adjustTaginfoForNonBigtiff(bigtiff, taginfo):
                 abs(x) < 2**31 for x in taginfo['data']):
             taginfo['datatype'] = Datatype.SLONG.value
         else:
-            raise MustBeBigTiffError('There are datatypes that require bigtiff format.')
+            msg = 'There are datatypes that require bigtiff format.'
+            raise MustBeBigTiffError(msg)
 
 
 def _checkDataForNonBigtiff(bigtiff, data):
@@ -446,7 +449,8 @@ def _checkDataForNonBigtiff(bigtiff, data):
     :param data: an array of integers to check.
     """
     if not bigtiff and any(val for val in data if val >= 0x100000000):
-        raise MustBeBigTiffError('The file is large enough it must be in bigtiff format.')
+        msg = 'The file is large enough it must be in bigtiff format.'
+        raise MustBeBigTiffError(msg)
 
 
 def _writeDeferredData(bigtiff, bom, dest, ifd, ifdrecord, deferredData):
@@ -699,7 +703,8 @@ def write_tag_data(dest, src, offsets, lengths, srclen, dedup=False):
     COPY_CHUNKSIZE = 1024 ** 2
 
     if len(offsets) != len(lengths):
-        raise TifftoolsError('Offsets and byte counts do not correspond.')
+        msg = 'Offsets and byte counts do not correspond.'
+        raise TifftoolsError(msg)
     destOffsets = [0] * len(offsets)
     # We preserve the order of the chunks from the original file
     offsetList = sorted([(offset, idx) for idx, offset in enumerate(offsets)])

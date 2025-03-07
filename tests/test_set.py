@@ -11,7 +11,7 @@ from .datastore import datastore
 LOGGER = logging.getLogger('tifftools')
 
 
-@pytest.mark.parametrize('setlist,ifdspec,tag,datavalue', [
+@pytest.mark.parametrize(('setlist', 'ifdspec', 'tag', 'datavalue'), [
     ([('ImageDescription', 'Dog digging')], '', tifftools.Tag.ImageDescription, 'Dog digging'),
     ([('Orientation', '2')], '', tifftools.Tag.Orientation, [2]),
     ([('FNumber,0,EXIFIFD:0', '54,10')], ',0,EXIFIFD:0',
@@ -37,7 +37,7 @@ def test_tiff_set(tmp_path, setlist, ifdspec, tag, datavalue):
     assert info['ifds'][0]['tags'][int(tag)]['data'] == datavalue
 
 
-@pytest.mark.parametrize('unsetlist,ifdspec,tag', [
+@pytest.mark.parametrize(('unsetlist', 'ifdspec', 'tag'), [
     (['ImageDescription'], '', tifftools.Tag.ImageDescription),
     (['Orientation'], '', tifftools.Tag.Orientation),
     (['FNumber,0,EXIFIFD:0'], ',0,EXIFIFD:0',
@@ -103,7 +103,7 @@ def test_tiff_set_fromfile(tmp_path):
     assert info['ifds'][0]['tags'][int(tifftools.Tag.ImageDescription)]['data'] == 'Dog digging'
 
 
-@pytest.mark.parametrize('setlist,msg', [
+@pytest.mark.parametrize(('setlist', 'msg'), [
     ([('Orientation:LONG', 'notanumber')], 'cannot be converted'),
     ([('Orientation:BYTE', '-2')], 'cannot be converted'),
     ([('Orientation:ASCII', b'\xff\x00')], 'cannot be converted'),
@@ -120,7 +120,7 @@ def test_tiff_set_failures(tmp_path, setlist, msg):
     assert msg in str(exc.value)
 
 
-@pytest.mark.parametrize('setlist,msg', [
+@pytest.mark.parametrize(('setlist', 'msg'), [
     ([('Orientation:LONG', 9)], 'not in known values'),
     ([('Orientation', None)], 'Could not determine data'),
 ])

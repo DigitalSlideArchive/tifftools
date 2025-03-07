@@ -1,4 +1,4 @@
-# flake8: noqa 501
+# flake8: noqa: E501
 # Disable flake8 line-length check (E501), it makes this file harder to read
 
 import struct
@@ -134,7 +134,7 @@ class TiffConstantSet:
         return default
 
     def __iter__(self):
-        for k, v in sorted(self._entries.items()):
+        for _k, v in sorted(self._entries.items()):
             yield v
 
 
@@ -255,7 +255,7 @@ Photometric = TiffConstantSet('TiffPhotometric', {
     10: {'name': 'ITULab', 'desc': 'ITU L*a*b*'},
     32803: {'name': 'CFA', 'desc': 'Color filter array'},
     32844: {'name': 'LogL', 'desc': 'CIE Log2(L)'},
-    32845: {'name': 'LogLuv', 'desc': 'CIE Log2(L) (u\',v\')'},
+    32845: {'name': 'LogLuv', 'desc': "CIE Log2(L) (u',v')"},
 })
 
 Thresholding = TiffConstantSet('TiffThresholding', {
@@ -372,13 +372,10 @@ EXIFTag = TiffConstantSet(TiffTag, {
     34866: {'datatype': Datatype.LONG, 'name': 'RecommendedExposureIndex'},
     34867: {'name': 'ISOSPEED'},
     34868: {'name': 'ISOSPEEDLATITUDEYYY'},
-    34869: {'name': 'ISOSPEEDLATITUDEZZZ'},
-    36867: {'name': 'DateTimeOriginal', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of original data'},
-    36868: {'name': 'DateTimeDigitized', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of digital data'},
     34869: {'datatype': Datatype.LONG, 'name': 'ISOSpeedLatitudezzz'},
     36864: {'name': 'ExifVersion'},
-    36867: {'datatype': Datatype.ASCII, 'name': 'DateTimeOriginal'},
-    36868: {'name': 'CreateDate', 'altnames': {'DATETIMEDIGITIZED'}, 'datatype': Datatype.ASCII},
+    36867: {'name': 'DateTimeOriginal', 'datatype': Datatype.ASCII, 'count': 20, 'desc': 'Date and time of original data'},
+    36868: {'name': 'CreateDate', 'altnames': {'DateTimeDigitized'}, 'datatype': Datatype.ASCII},
     36873: {'name': 'GooglePlusUploadCode'},
     36880: {'datatype': Datatype.ASCII, 'name': 'OffsetTime'},
     36881: {'datatype': Datatype.ASCII, 'name': 'OffsetTimeOriginal'},
@@ -602,7 +599,7 @@ def GeoKeysToDict(keys, ifd, dest=None, linePrefix=''):
     asciis = ifd['tags'][Tag.GeoAsciiParamsTag.value]['data'] if Tag.GeoAsciiParamsTag.value in ifd['tags'] else ''
     for idx in range(4, len(keys), 4):
         keyid, tagval, count, offset = keys[idx:idx + 4]
-        if not keyid in GeoTiffGeoKey:
+        if keyid not in GeoTiffGeoKey:
             continue
         name = GeoTiffGeoKey[keyid].name
         if not tagval:
@@ -748,7 +745,6 @@ Tag = TiffConstantSet(TiffTag, {
     33451: {'name': 'MDPrepTime'},
     33452: {'name': 'MDFileUnits'},
     33550: {'name': 'ModelPixelScaleTag'},
-    33723: {'name': 'IPTC_NAA', 'desc': 'Alias IPTC/NAA Newspaper Association RichTIFF'},
     33723: {'name': 'RichTiffIPTC', 'altnames': {'IPTC_NAA'}, 'desc': 'Alias IPTC/NAA Newspaper Association RichTIFF'},
     33918: {'name': 'INGRPacketDataTag'},
     33919: {'name': 'INGRFlagRegisters'},
@@ -939,7 +935,7 @@ Tag = TiffConstantSet(TiffTag, {
     52532: {'name': 'FORWARDMATRIX3', 'desc': 'matrix to map white balanced camera colors to XYZ D50'},
     52533: {'name': 'ILLUMINANTDATA1', 'desc': 'data for the first calibration illuminant'},
     52534: {'name': 'ILLUMINANTDATA2', 'desc': 'data for the second calibration illuminant'},
-    52536: {'name': 'MASKSUBAREA', 'desc': 'the crop rectangle of this IFD\'s mask, relative to the main image'},
+    52536: {'name': 'MASKSUBAREA', 'desc': "the crop rectangle of this IFD's mask, relative to the main image"},
     52537: {'name': 'PROFILEHUESATMAPDATA3', 'desc': 'the data for the third HSV table'},
     52538: {'name': 'REDUCTIONMATRIX3', 'desc': 'dimensionality reduction matrix for use in color conversion to XYZ under CalibrationIlluminant3'},
     52543: {'name': 'RGBTABLES', 'desc': 'color transforms to apply to masked image regions'},

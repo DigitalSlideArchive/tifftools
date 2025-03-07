@@ -9,7 +9,7 @@ import tifftools
 from .datastore import datastore
 
 
-@pytest.mark.parametrize('cmd_params,check_text,catch_exc,test_path', [
+@pytest.mark.parametrize(('cmd_params', 'check_text', 'catch_exc', 'test_path'), [
     ([], 'subcommands', None, None),
     (['--help'], 'subcommands', SystemExit, None),
     (['info'], 'usage', SystemExit, None),
@@ -30,7 +30,7 @@ def test_main(cmd_params, check_text, catch_exc, test_path, capsys):
     assert check_text in captured.out or check_text in captured.err
 
 
-@pytest.mark.parametrize('cmd_params,check_text,catch_exc,test_path', [
+@pytest.mark.parametrize(('cmd_params', 'check_text', 'catch_exc', 'test_path'), [
     ([], 'subcommands', None, None),
     (['--help'], 'subcommands', SystemExit, None),
     (['info'], 'usage', SystemExit, None),
@@ -67,4 +67,5 @@ def test_main_module(cmd_params, check_text, catch_exc, test_path, capsys):
 def test_main_module_import(capsys):
     runpy.run_module('tifftools')
     captured = capsys.readouterr()
-    assert 'subcommands' not in captured.out and 'subcommands' not in captured.err
+    assert 'subcommands' not in captured.out
+    assert 'subcommands' not in captured.err

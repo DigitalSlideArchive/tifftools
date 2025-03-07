@@ -32,7 +32,11 @@ class DKCPooch(pooch.Pooch):
 
 datastore = DKCPooch(
     path=pooch.utils.cache_location(
-        os.path.join(os.environ.get('TOX_WORK_DIR', pooch.utils.os_cache('pooch')), 'dkc_datastore')
+        os.path.join(
+            os.environ.get(
+                'TOX_WORK_DIR',
+                pooch.utils.os_cache('pooch')),
+            'dkc_datastore'),
     ),
     base_url='https://data.kitware.com/api/v1/file/hashsum/{algo}/{hashvalue}/download',
     registry=registry,

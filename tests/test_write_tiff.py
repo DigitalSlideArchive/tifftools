@@ -159,11 +159,11 @@ def test_write_with_dedup(tmp_path):
     uniqueString = b'UNIQUESTRING'
     info['ifds'][0]['tags'][23456] = {
         'datatype': tifftools.Datatype.UNDEFINED,
-        'data': uniqueString
+        'data': uniqueString,
     }
     info['ifds'][0]['tags'][23457] = {
         'datatype': tifftools.Datatype.UNDEFINED,
-        'data': uniqueString
+        'data': uniqueString,
     }
     destpath = tmp_path / 'sample.tiff'
     tifftools.write_tiff(info, destpath)
@@ -183,11 +183,11 @@ def test_write_with_dedup_and_ifdsfirst(tmp_path):
     uniqueString = b'UNIQUESTRING'
     info['ifds'][0]['tags'][23456] = {
         'datatype': tifftools.Datatype.UNDEFINED,
-        'data': uniqueString
+        'data': uniqueString,
     }
     info['ifds'][0]['tags'][23457] = {
         'datatype': tifftools.Datatype.UNDEFINED,
-        'data': uniqueString
+        'data': uniqueString,
     }
     destpath = tmp_path / 'sample.tiff'
     tifftools.write_tiff(info, destpath)
@@ -219,7 +219,7 @@ def test_write_single_subifd(tmp_path):
     path = os.path.join(os.path.dirname(__file__), 'data', 'good_single.tif')
     info = tifftools.read_tiff(path)
     info['ifds'][0]['tags'][tifftools.Tag.SubIFD.value] = {
-        'ifds': [copy.deepcopy(info['ifds'][0])]
+        'ifds': [copy.deepcopy(info['ifds'][0])],
     }
     dest1path = tmp_path / 'sample1.tiff'
     tifftools.write_tiff(info, dest1path)
@@ -227,7 +227,7 @@ def test_write_single_subifd(tmp_path):
     assert len(dest1info['ifds'][0]['tags'][tifftools.Tag.SubIFD.value]['ifds'][0]) == 1
     info = tifftools.read_tiff(path)
     info['ifds'][0]['tags'][tifftools.Tag.SubIFD.value] = {
-        'ifds': [copy.deepcopy(info['ifds'])]
+        'ifds': [copy.deepcopy(info['ifds'])],
     }
     dest2path = tmp_path / 'sample2.tiff'
     tifftools.write_tiff(info, dest2path)
