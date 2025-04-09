@@ -141,6 +141,11 @@ def test_tiff_set_setfrom_missing(tmp_path, caplog):
 
 
 def test_tiff_set_projection_and_gcps(tmp_path):
+    try:
+        import pyproj  # noqa: F401
+    except ImportError:
+        pytest.skip(reason='Requires pyproj', allow_module_level=True)
+
     path = datastore.fetch('d043-200.tif')
     dest = tmp_path / 'results.tif'
     projection = (
