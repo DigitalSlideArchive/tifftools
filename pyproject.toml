@@ -2,6 +2,39 @@
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "tifftools"
+dynamic = ["version"]
+description = "Pure python tiff tools to handle all tags and IFDs."
+license = {text = "Apache-2.0"}
+readme = {file = "README.rst", content-type = "text/x-rst"}
+authors = [{name = "Kitware, Inc.", email = "kitware@kitware.com"}]
+keywords = ["tiff"]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Topic :: Utilities',
+]
+urls = {Repository = "https://github.com/DigitalSlideArchive/tifftools"}
+requires-python = ">=3.8"
+
+[project.scripts]
+tifftools = "tifftools:main"
+
+[tool.setuptools]
+packages = { find = { exclude = ["tests*"] } } 
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+local_scheme = "no-local-version"
+
 [tool.ruff]
 include = ["*.py", "*.pyi", "**/pyproject.toml"]
 exclude = [
