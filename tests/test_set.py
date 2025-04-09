@@ -138,3 +138,39 @@ def test_tiff_set_setfrom_missing(tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
         tifftools.tiff_set(str(path) + ',1', dest, setfrom=[('InkNames', path)])
     assert 'is not in' in caplog.text
+
+
+def test_tiff_set_projection_and_gcps(tmp_path):
+    path = datastore.fetch('d043-200.tif')
+    dest = tmp_path / 'results.tif'
+    projection = (
+        '+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5'
+        ' +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'
+    )
+    gcps = [
+        (1979142.78, 2368597.47, 0, 0),
+        (2055086.35, 2449556.39, 100, 100),
+    ]
+    tifftools.tiff_set(str(path), dest, setlist=[
+        ('projection', projection),
+        ('gcps', gcps),
+    ])
+    info = tifftools.read_tiff(str(dest))
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
+        1, 1, 0, 13, 1024, 0, 1, 1,
+        1025, 0, 1, 1, 2049, 34737, 1, 0,
+        2054, 0, 1, 9102, 2057, 34736, 1, 0,
+        2059, 34736, 1, 1, 3078, 34736, 1, 2,
+        3079, 34736, 1, 3, 3081, 34736, 1, 4,
+        3080, 34736, 1, 5, 1026, 34737, 1, 1,
+        3075, 0, 1, 11, 3076, 0, 1, 9001,
+    ]
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoDoubleParamsTag)]['data'] == [
+        6378137.0, 298.257223563, 29.5, 45.5, 23.0, -96.0,
+    ]
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoAsciiParamsTag)
+                                   ]['data'] == 'WGS84|Albers Equal Area'
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.ModelTiePointTag)]['data'] == [
+        0.0, 0.0, 0.0, 1979142.78, 2368597.47, 0.0,
+        100.0, 100.0, 0.0, 2055086.35, 2449556.39, 0.0,
+    ]
