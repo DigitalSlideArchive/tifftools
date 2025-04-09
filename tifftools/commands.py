@@ -513,7 +513,18 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
                 logger.info('Tag %s is not present', tag)
             ifd['tags'].pop(int(tag), None)
     if setlist is not None:
+        full_setlist = []
         for tagspec, value in setlist:
+            if tagspec.lower() == 'projection':
+                full_setlist += _set_projection(source, value,
+                                                output=output, overwrite=overwrite, **kwargs)
+            elif tagspec.lower() == 'gcps':
+                full_setlist += _set_gcps(source, value, output=output,
+                                          overwrite=overwrite, **kwargs)
+            else:
+                full_setlist.append((tagspec, value))
+
+        for tagspec, value in full_setlist:
             tag, datatype, ifd, data = _tagspec_to_ifd(tagspec, info, value)
             if data is not None:
                 ifd['tags'][int(tag)] = {
@@ -573,8 +584,15 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
         _tiff_set(source, output, setlist, unset, setfrom, overwrite=overwrite, **kwargs)
 
 
-def set_projection(source, projection_string, **kwargs):
-    # TODO write docstring, add to command line
+def _set_projection(source, projection_string, **kwargs):
+    """
+    Set geospatial projection in a tiff file.
+
+    :param source: the source path.
+    :param projection_string: the projection, written as a string that can be
+        interpreted by `pyproj.CRS.from_string()`.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
     import pyproj
 
     projection = pyproj.CRS.from_string(projection_string)
@@ -607,12 +625,12 @@ def set_projection(source, projection_string, **kwargs):
     key_revision = 1
     minor_revision = 0
     number_of_keys = len(geokeys)
-    header = ' '.join(
-        str(v) for v in [
-            key_directory_version,
-            key_revision,
-            minor_revision,
-            number_of_keys])
+    header = ' '.join(str(v) for v in [
+        key_directory_version,
+        key_revision,
+        minor_revision,
+        number_of_keys,
+    ])
 
     geokey_tag = f'{header}'
     doubles = []
@@ -637,25 +655,64 @@ def set_projection(source, projection_string, **kwargs):
     doubles_tag = ' '.join(str(v) for v in doubles)
     asciis_tag = '|'.join(asciis)
 
+    return [
+        ('GeoKeyDirectoryTag', geokey_tag),
+        ('GeoDoubleParamsTag', doubles_tag),
+        ('GeoAsciiParamsTag', asciis_tag),
+    ]
+
+
+def set_projection(source, projection_string, **kwargs):
+    """
+    Set geospatial projection in a tiff file.
+
+    :param source: the source path.
+    :param projection_string: the projection, written as a string that can be
+        interpreted by `pyproj.CRS.from_string()`.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
     tiff_set(
         source,
-        setlist=[
-            ('GeoKeyDirectoryTag', geokey_tag),
-            ('GeoDoubleParamsTag', doubles_tag),
-            ('GeoAsciiParamsTag', asciis_tag),
-        ],
+        setlist=_set_projection(source, projection_string, **kwargs),
         **kwargs,
     )
 
 
-def set_gcps(source, gcps, **kwargs):
-    # TODO write docstring, add to command line
+def _set_gcps(source, gcps, **kwargs):
+    """
+    Set geospatial Ground Control Points (GCPs) in a tiff file.
+
+    :param source: the source path.
+    :param gcps: a list of tuples of the form (cx, cy, px, py),
+        where cx and cy represent a coordinate in projection space
+        and px and py represent a pixel position.
+        This argument may also be passed a space-separated string of
+        these values as a flat list.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
+    if isinstance(gcps, str):
+        gcps = list(zip(*[iter(gcps.split())] * 4))
     tiepoint_tag = ' '.join(
         f'{px} {py} 0 {cx} {cy} 0' for cx, cy, px, py in gcps
     )
+    return [('ModelTiepointTag', tiepoint_tag)]
+
+
+def set_gcps(source, gcps, **kwargs):
+    """
+    Set geospatial Ground Control Points (GCPs) in a tiff file.
+
+    :param source: the source path.
+    :param gcps: a list of tuples of the form (cx, cy, px, py),
+        where cx and cy represent a coordinate in projection space
+        and px and py represent a pixel position.
+        This argument may also be passed a space-separated string of
+        these values as a flat list.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
     tiff_set(
         source,
-        setlist=[('ModelTiepointTag', tiepoint_tag)],
+        setlist=_set_gcps(source, gcps, **kwargs),
         **kwargs,
     )
 
