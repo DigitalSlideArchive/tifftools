@@ -26,6 +26,7 @@ setup(
     name='tifftools',
     use_scm_version={'local_scheme': prerelease_local_scheme, 'fallback_version': '0.0.0'},
     setup_requires=['setuptools-scm'],
+    install_requires=['pyproj'],
     author='Kitware, Inc.',
     author_email='kitware@kitware.com',
     classifiers=[
