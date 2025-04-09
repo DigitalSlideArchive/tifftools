@@ -10,7 +10,8 @@ import struct
 import sys
 import tempfile
 
-from .constants import Datatype, Tag, get_or_create_tag
+from .constants import (Datatype, GeoTiffAngularUnits, GeoTiffGeoKey, GeoTiffLinearUnits,
+                        GeoTiffTransformations, Tag, get_or_create_tag)
 from .exceptions import TifftoolsError
 from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
 
@@ -570,6 +571,93 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
                 shutil.copyfileobj(fsrc, fdest)
     else:
         _tiff_set(source, output, setlist, unset, setfrom, overwrite=overwrite, **kwargs)
+
+
+def set_projection(source, projection_string, **kwargs):
+    # TODO write docstring, add to command line
+    import pyproj
+
+    projection = pyproj.CRS.from_string(projection_string)
+    proj_dict = projection.to_dict()
+    angular_units = GeoTiffAngularUnits.get(projection.prime_meridian.unit_name).value
+    geokeys = dict(
+        GTModelType=3 if projection.is_geocentric else 2 if projection.is_geographic else 1,
+        GTRasterType=1,
+        GeographicType=projection.to_epsg(),
+        GeogCitation=proj_dict.get('datum'),
+        GeogAngularUnits=angular_units,
+        GeogSemiMajorAxis=projection.ellipsoid.semi_major_metre,
+        GeogInvFlattening=projection.ellipsoid.inverse_flattening,
+        ProjStdParallel1=proj_dict.get('lat_1'),
+        ProjStdParallel2=proj_dict.get('lat_2'),
+        ProjNatOriginLat=proj_dict.get('lat_0'),
+        ProjNatOriginLong=proj_dict.get('lon_0'),
+    )
+    if projection.coordinate_operation:
+        method_name = projection.coordinate_operation.method_name
+        transformation = GeoTiffTransformations.get(method_name.replace(' ', ''))
+        geokeys['GTCitation'] = method_name
+        geokeys['ProjCoordTrans'] = transformation
+    if proj_dict.get('units'):
+        linear_units = GeoTiffLinearUnits.get(proj_dict.get('units')).value
+        geokeys['ProjLinearUnits'] = linear_units
+    geokeys = {k: v for k, v in geokeys.items() if v is not None}
+
+    key_directory_version = 1
+    key_revision = 1
+    minor_revision = 0
+    number_of_keys = len(geokeys)
+    header = ' '.join(
+        str(v) for v in [
+            key_directory_version,
+            key_revision,
+            minor_revision,
+            number_of_keys])
+
+    geokey_tag = f'{header}'
+    doubles = []
+    asciis = []
+    for geokey, value in geokeys.items():
+        key_spec = GeoTiffGeoKey.get(geokey)
+        key_id = key_spec.value
+        data_type = key_spec.datatype
+        value_count = 1
+        if data_type == Datatype.SHORT:
+            tag_location = 0
+            value_offset = int(value)
+        elif data_type == Datatype.ASCII:
+            tag_location = Tag.get('GeoAsciiParamsTag').value
+            value_offset = len(asciis)
+            asciis.append(str(value))
+        elif data_type == Datatype.DOUBLE:
+            tag_location = Tag.get('GeoDoubleParamsTag').value
+            value_offset = len(doubles)
+            doubles.append(float(value))
+        geokey_tag += f' {key_id} {tag_location} {value_count} {value_offset}'
+    doubles_tag = ' '.join(str(v) for v in doubles)
+    asciis_tag = '|'.join(asciis)
+
+    tiff_set(
+        source,
+        setlist=[
+            ('GeoKeyDirectoryTag', geokey_tag),
+            ('GeoDoubleParamsTag', doubles_tag),
+            ('GeoAsciiParamsTag', asciis_tag),
+        ],
+        **kwargs,
+    )
+
+
+def set_gcps(source, gcps, **kwargs):
+    # TODO write docstring, add to command line
+    tiepoint_tag = ' '.join(
+        f'{px} {py} 0 {cx} {cy} 0' for cx, cy, px, py in gcps
+    )
+    tiff_set(
+        source,
+        setlist=[('ModelTiepointTag', tiepoint_tag)],
+        **kwargs,
+    )
 
 
 def main(args=None):
