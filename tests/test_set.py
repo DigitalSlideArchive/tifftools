@@ -140,7 +140,7 @@ def test_tiff_set_setfrom_missing(tmp_path, caplog):
     assert 'is not in' in caplog.text
 
 
-def test_tiff_set_projection_and_gcps(tmp_path):
+def test_tiff_set_projection_and_gcps_with_pyproj(tmp_path):
     try:
         import pyproj  # noqa: F401
     except ImportError:
@@ -178,4 +178,19 @@ def test_tiff_set_projection_and_gcps(tmp_path):
     assert info['ifds'][0]['tags'][int(tifftools.Tag.ModelTiePointTag)]['data'] == [
         0.0, 0.0, 0.0, 1979142.78, 2368597.47, 0.0,
         100.0, 100.0, 0.0, 2055086.35, 2449556.39, 0.0,
+    ]
+
+
+def test_tiff_set_projection_and_gcps_without_pyproj(tmp_path):
+    path = datastore.fetch('d043-200.tif')
+    dest = tmp_path / 'results.tif'
+    projection = 'epsg:4326'
+    gcps = [(-77.05, 38.88, 0, 0), (-77.04, 38.89, 100, 100)]
+    tifftools.tiff_set(str(path), dest, setlist=[
+        ('projection', projection),
+        ('gcps', gcps),
+    ])
+    info = tifftools.read_tiff(str(dest))
+    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
+        1, 1, 0, 3, 1024, 0, 1, 2, 1025, 0, 1, 1, 2048, 0, 1, 4326,
     ]

@@ -10,7 +10,7 @@ import struct
 import sys
 import tempfile
 
-from .constants import (Datatype, GeoTiffAngularUnits, GeoTiffGeoKey, GeoTiffLinearUnits,
+from .constants import (Datatype, EPSGTypes, GeoTiffAngularUnits, GeoTiffGeoKey, GeoTiffLinearUnits,
                         GeoTiffTransformations, Tag, get_or_create_tag)
 from .exceptions import TifftoolsError
 from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
@@ -584,41 +584,65 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
         _tiff_set(source, output, setlist, unset, setfrom, overwrite=overwrite, **kwargs)
 
 
-def _set_projection(source, projection_string, **kwargs):
+def _set_projection(source, projection, **kwargs):
     """
     Set geospatial projection in a tiff file.
 
     :param source: the source path.
-    :param projection_string: the projection, written as a string that can be
-        interpreted by `pyproj.CRS.from_string()`.
+    :param projection: the projection, expressed as an integer representing an EPSG code or
+        expressed as a string that can be interpreted by `pyproj.CRS.from_string()`.
     :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
     """
-    import pyproj
+    geokeys = None
+    if isinstance(projection, str) and 'epsg:' in projection.lower():
+        projection = int(projection.lower().replace('epsg:', ''))
+    if isinstance(projection, int):
+        for geotype, codes in EPSGTypes.items():
+            if projection in codes:
+                geokeys = dict(
+                    GTModelType=(
+                        3 if geotype == 'geocentric' else
+                        2 if geotype == 'geographic_2d' else 1
+                    ),
+                    GTRasterType=1,
+                    GeographicType=projection,
+                )
 
-    projection = pyproj.CRS.from_string(projection_string)
-    proj_dict = projection.to_dict()
-    angular_units = GeoTiffAngularUnits.get(projection.prime_meridian.unit_name).value
-    geokeys = dict(
-        GTModelType=3 if projection.is_geocentric else 2 if projection.is_geographic else 1,
-        GTRasterType=1,
-        GeographicType=projection.to_epsg(),
-        GeogCitation=proj_dict.get('datum'),
-        GeogAngularUnits=angular_units,
-        GeogSemiMajorAxis=projection.ellipsoid.semi_major_metre,
-        GeogInvFlattening=projection.ellipsoid.inverse_flattening,
-        ProjStdParallel1=proj_dict.get('lat_1'),
-        ProjStdParallel2=proj_dict.get('lat_2'),
-        ProjNatOriginLat=proj_dict.get('lat_0'),
-        ProjNatOriginLong=proj_dict.get('lon_0'),
-    )
-    if projection.coordinate_operation:
-        method_name = projection.coordinate_operation.method_name
-        transformation = GeoTiffTransformations.get(method_name.replace(' ', ''))
-        geokeys['GTCitation'] = method_name
-        geokeys['ProjCoordTrans'] = transformation
-    if proj_dict.get('units'):
-        linear_units = GeoTiffLinearUnits.get(proj_dict.get('units')).value
-        geokeys['ProjLinearUnits'] = linear_units
+    if geokeys is None:
+        try:
+            import pyproj
+        except ImportError:
+            msg = (
+                f'pyproj is required to interpret projection {projection}. '
+                'Please install tifftools[geo].'
+            )
+            raise TifftoolsError(msg)
+
+        proj = pyproj.CRS.from_string(projection)
+        proj_dict = proj.to_dict()
+        angular_units = GeoTiffAngularUnits.get(proj.prime_meridian.unit_name).value
+        geokeys = dict(
+            GTModelType=3 if proj.is_geocentric else 2 if proj.is_geographic else 1,
+            GTRasterType=1,
+            GeographicType=proj.to_epsg(),
+            GeogCitation=proj_dict.get('datum'),
+            GeogAngularUnits=angular_units,
+            GeogSemiMajorAxis=proj.ellipsoid.semi_major_metre,
+            GeogInvFlattening=proj.ellipsoid.inverse_flattening,
+            ProjStdParallel1=proj_dict.get('lat_1'),
+            ProjStdParallel2=proj_dict.get('lat_2'),
+            ProjNatOriginLat=proj_dict.get('lat_0'),
+            ProjNatOriginLong=proj_dict.get('lon_0'),
+        )
+        if proj.coordinate_operation:
+            method_name = proj.coordinate_operation.method_name
+            transformation = GeoTiffTransformations.get(method_name.replace(' ', ''))
+            geokeys['GTCitation'] = method_name
+            geokeys['ProjCoordTrans'] = transformation
+        if proj_dict.get('units'):
+            linear_units = GeoTiffLinearUnits.get(proj_dict.get('units')).value
+            geokeys['ProjLinearUnits'] = linear_units
+
     geokeys = {k: v for k, v in geokeys.items() if v is not None}
 
     key_directory_version = 1
@@ -662,18 +686,18 @@ def _set_projection(source, projection_string, **kwargs):
     ]
 
 
-def set_projection(source, projection_string, **kwargs):
+def set_projection(source, projection, **kwargs):
     """
     Set geospatial projection in a tiff file.
 
     :param source: the source path.
-    :param projection_string: the projection, written as a string that can be
-        interpreted by `pyproj.CRS.from_string()`.
+    :param projection: the projection, expressed as an integer representing an EPSG code or
+        expressed as a string that can be interpreted by `pyproj.CRS.from_string()`.
     :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
     """
     tiff_set(
         source,
-        setlist=_set_projection(source, projection_string, **kwargs),
+        setlist=_set_projection(source, projection, **kwargs),
         **kwargs,
     )
 
