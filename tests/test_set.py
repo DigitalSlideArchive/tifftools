@@ -141,10 +141,11 @@ def test_tiff_set_setfrom_missing(tmp_path, caplog):
 
 
 def test_tiff_set_projection_and_gcps_with_pyproj(tmp_path):
+    expect_import_error = False
     try:
         import pyproj  # noqa: F401
     except ImportError:
-        pytest.skip(reason='Requires pyproj', allow_module_level=True)
+        expect_import_error = True
 
     path = datastore.fetch('d043-200.tif')
     dest = tmp_path / 'results.tif'
@@ -156,40 +157,58 @@ def test_tiff_set_projection_and_gcps_with_pyproj(tmp_path):
         (1979142.78, 2368597.47, 0, 0),
         (2055086.35, 2449556.39, 100, 100),
     ]
-    tifftools.tiff_set(str(path), dest, setlist=[
-        ('projection', projection),
-        ('gcps', gcps),
-    ])
-    info = tifftools.read_tiff(str(dest))
-    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
-        1, 1, 0, 13, 1024, 0, 1, 1,
-        1025, 0, 1, 1, 2049, 34737, 1, 0,
-        2054, 0, 1, 9102, 2057, 34736, 1, 0,
-        2059, 34736, 1, 1, 3078, 34736, 1, 2,
-        3079, 34736, 1, 3, 3081, 34736, 1, 4,
-        3080, 34736, 1, 5, 1026, 34737, 1, 1,
-        3075, 0, 1, 11, 3076, 0, 1, 9001,
-    ]
-    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoDoubleParamsTag)]['data'] == [
-        6378137.0, 298.257223563, 29.5, 45.5, 23.0, -96.0,
-    ]
-    assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoAsciiParamsTag)
-                                   ]['data'] == 'WGS84|Albers Equal Area'
-    assert info['ifds'][0]['tags'][int(tifftools.Tag.ModelTiePointTag)]['data'] == [
-        0.0, 0.0, 0.0, 1979142.78, 2368597.47, 0.0,
-        100.0, 100.0, 0.0, 2055086.35, 2449556.39, 0.0,
-    ]
+    if expect_import_error:
+        with pytest.raises(tifftools.TifftoolsError):
+            tifftools.tiff_set(str(path), dest, setlist=[
+                ('projection', projection),
+                ('gcps', gcps),
+            ])
+    else:
+        tifftools.tiff_set(str(path), dest, setlist=[
+            ('projection', projection),
+            ('gcps', gcps),
+        ])
+        info = tifftools.read_tiff(str(dest))
+        assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
+            1, 1, 0, 13, 1024, 0, 1, 1,
+            1025, 0, 1, 1, 2049, 34737, 1, 0,
+            2054, 0, 1, 9102, 2057, 34736, 1, 0,
+            2059, 34736, 1, 1, 3078, 34736, 1, 2,
+            3079, 34736, 1, 3, 3081, 34736, 1, 4,
+            3080, 34736, 1, 5, 1026, 34737, 1, 1,
+            3075, 0, 1, 11, 3076, 0, 1, 9001,
+        ]
+        assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoDoubleParamsTag)]['data'] == [
+            6378137.0, 298.257223563, 29.5, 45.5, 23.0, -96.0,
+        ]
+        assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoAsciiParamsTag)
+                                       ]['data'] == 'WGS84|Albers Equal Area'
+        assert info['ifds'][0]['tags'][int(tifftools.Tag.ModelTiePointTag)]['data'] == [
+            0.0, 0.0, 0.0, 1979142.78, 2368597.47, 0.0,
+            100.0, 100.0, 0.0, 2055086.35, 2449556.39, 0.0,
+        ]
 
 
-def test_tiff_set_projection_and_gcps_without_pyproj(tmp_path):
+@pytest.mark.parametrize('method', ['direct', 'tiff_set', 'main'])
+def test_tiff_set_projection_and_gcps_without_pyproj(tmp_path, method):
     path = datastore.fetch('d043-200.tif')
     dest = tmp_path / 'results.tif'
     projection = 'epsg:4326'
     gcps = [(-77.05, 38.88, 0, 0), (-77.04, 38.89, 100, 100)]
-    tifftools.tiff_set(str(path), dest, setlist=[
-        ('projection', projection),
-        ('gcps', gcps),
-    ])
+    if method == 'direct':
+        tifftools.commands.set_gcps(str(path), gcps, output=str(dest), overwrite=True)
+        tifftools.commands.set_projection(str(path), projection, output=str(dest), overwrite=True)
+    elif method == 'tiff_set':
+        tifftools.tiff_set(str(path), dest, setlist=[
+            ('projection', projection),
+            ('gcps', gcps),
+        ])
+    elif method == 'main':
+        tifftools.main([
+            'set', str(path), str(dest),
+            '--set', 'projection', projection,
+            '--set', 'gcps', ' '.join(' '.join(str(g) for g in gcp) for gcp in gcps),
+        ])
     info = tifftools.read_tiff(str(dest))
     assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
         1, 1, 0, 3, 1024, 0, 1, 2, 1025, 0, 1, 1, 2048, 0, 1, 4326,
