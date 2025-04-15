@@ -225,7 +225,7 @@ def test_tiff_set_projection_edge_case(tmp_path):
             (
                 'GeoKeyDirectoryTag',
                 ('1 1 0 6 1024 0 1 2 1025 0 1 1 2049 34737 1 0 '
-                '2054 0 1 9102 2057 34736 1 0 2059 34736 1 1'),
+                 '2054 0 1 9102 2057 34736 1 0 2059 34736 1 1'),
             ),
             ('GeoDoubleParamsTag', '6378137.0 298.257223563'),
             ('GeoAsciiParamsTag', 'WGS84'),
