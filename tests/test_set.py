@@ -230,5 +230,6 @@ def test_tiff_set_projection_edge_case(tmp_path):
             ('GeoDoubleParamsTag', '6378137.0 298.257223563'),
             ('GeoAsciiParamsTag', 'WGS84'),
         ]
-    except ImportError:
+    except tifftools.TifftoolsError:
+        # pyproj not installed
         pass
