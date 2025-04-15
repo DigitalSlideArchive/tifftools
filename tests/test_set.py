@@ -213,3 +213,22 @@ def test_tiff_set_projection_and_gcps_without_pyproj(tmp_path, method):
     assert info['ifds'][0]['tags'][int(tifftools.Tag.GeoKeyDirectoryTag)]['data'] == [
         1, 1, 0, 3, 1024, 0, 1, 2, 1025, 0, 1, 1, 2048, 0, 1, 4326,
     ]
+
+
+def test_tiff_set_projection_edge_case(tmp_path):
+    try:
+        path = datastore.fetch('d043-200.tif')
+        result = tifftools.commands._set_projection(
+            path, '+proj=longlat +axis=esu',
+        )
+        assert result == [
+            (
+                'GeoKeyDirectoryTag',
+                ('1 1 0 6 1024 0 1 2 1025 0 1 1 2049 34737 1 0 '
+                '2054 0 1 9102 2057 34736 1 0 2059 34736 1 1'),
+            ),
+            ('GeoDoubleParamsTag', '6378137.0 298.257223563'),
+            ('GeoAsciiParamsTag', 'WGS84'),
+        ]
+    except ImportError:
+        pass

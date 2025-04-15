@@ -667,14 +667,14 @@ def _set_projection(source, projection, **kwargs):
         if data_type == Datatype.SHORT:
             tag_location = 0
             value_offset = int(value)
-        elif data_type == Datatype.ASCII:
-            tag_location = Tag.get('GeoAsciiParamsTag').value
-            value_offset = len(asciis)
-            asciis.append(str(value))
         elif data_type == Datatype.DOUBLE:
             tag_location = Tag.get('GeoDoubleParamsTag').value
             value_offset = len(doubles)
             doubles.append(float(value))
+        else:
+            tag_location = Tag.get('GeoAsciiParamsTag').value
+            value_offset = len(asciis)
+            asciis.append(str(value))
         geokey_tag += f' {key_id} {tag_location} {value_count} {value_offset}'
     doubles_tag = ' '.join(str(v) for v in doubles)
     asciis_tag = '|'.join(asciis)
