@@ -755,7 +755,7 @@ GeoTiffLinearUnits = TiffConstantSet('GeoTiffLinearUnits', {
     9012: {'name': 'Linear_Yard_Sears', 'altnames': {'yd_sr'}},
     9013: {'name': 'Linear_Yard_Indian', 'altnames': {'yd_in'}},
     9014: {'name': 'Linear_Fathom', 'altnames': {'fathom'}},
-    9015: {'name': 'Linear_Mile_International_Nautical', 'altnames': {'mi', 'mile', 'miles'}},
+    9015: {'name': 'Linear_Mile_International_Nautical', 'altnames': {'kt', 'knot', 'knots', 'nmile', 'nmiles'}},
 })
 
 
