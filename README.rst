@@ -6,23 +6,18 @@ Pure Python tools for reading and writing all TIFF IFDs, sub-IFDs, and tags.
 
 Developed by Kitware, Inc. with funding from The National Cancer Institute.
 
-Example
-=======
+Installation
+============
 
-.. code-block:: python
+``tifftools`` is available on PyPI and conda-forge.
 
-    import tifftools
-    info = tifftools.read_tiff('photograph.tif')
-    info['ifds'][0]['tags'][tifftools.Tag.ImageDescription.value] = {
-        'data': 'A dog digging.',
-        'datatype': tifftools.Datatype.ASCII
-    }
-    exififd = info['ifds'][0]['tags'][tifftools.Tag.EXIFIFD.value]['ifds'][0][0]
-    exififd['tags'][tifftools.constants.EXIFTag.FNumber.value] = {
-        'data': [54, 10],
-        'datatype': tifftools.Datatype.RATIONAL
-    }
-    tifftools.write_tiff(info, 'photograph_tagged.tif')
+To install with pip from PyPI::
+
+    pip install tifftools
+
+To install with conda::
+
+    conda install -c conda-forge tifftools
 
 Commands
 ========
@@ -54,18 +49,134 @@ Library Functions
 
 - EXIFTag, GPSTag, etc.
 
-Installation
-============
+Examples
+========
 
-``tifftools`` is available on PyPI and conda-forge.
+Command Line
+------------
 
-To install with pip from PyPI::
+Print information about a TIFF file:
 
-    pip install tifftools
+.. code-block:: bash
 
-To install with conda::
+    tifftools dump photograph.tif
 
-    conda install -c conda-forge tifftools
+Split a TIFF file into its constituent subIFDs:
+
+.. code-block:: bash
+
+    tifftools split --subifds photograph.tif results/
+
+Combine multiple TIFF files into one:
+
+.. code-block:: bash
+
+    tifftools concat photo1.tif photo2.tif photo3.tif photos.tif
+
+Add georeferencing:
+
+.. code-block:: bash
+
+    tifftools set aerial_imagery.tif aerial_imagery_geospatial.tif --set projection epsg:4326 --set gcps '-77.05 38.88 0 0 -77.04 38.89 100 100'
+
+Set tags:
+
+.. code-block:: bash
+
+    tifftools set photograph.tif photograph_tagged.tif --set ImageDescription 'Dog digging' --set Orientation '2'
+
+Unset tags:
+
+.. code-block:: bash
+
+    tifftools set photograph_tagged.tif photograph_untagged.tif --unset ImageDescription --unset Orientation
+
+Copy tags from one image to another:
+
+.. code-block:: bash
+
+    tifftools set mypic.tif mypic_tagged.tif --setfrom ImageDescription photograph_tagged.tif --setfrom Orientation photograph_tagged.tif
+
+
+Python
+------
+
+Print information about a TIFF file:
+
+.. code-block:: python
+
+  import tifftools
+  info = tifftools.tiff_dump('photograph.tif')
+
+Split a TIFF file into its constituent subIFDs:
+
+.. code-block:: python
+
+    import tifftools
+    result_dir = './results/'
+    tifftools.tiff_split('photograph.tif', result_dir, subifds=True)
+
+Combine multiple TIFF files into one:
+
+.. code-block:: python
+
+    import tifftools
+    inputs = ['./photo1.tif', './photo2.tif', './photo3.tif']
+    result_path = './photos.tif'
+    tifftools.tiff_concat(inputs, result_path)
+
+Add georeferencing:
+
+.. code-block:: python
+
+    import tifftools
+    projection = 'epsg:4326'
+    gcps = [(-77.05, 38.88, 0, 0), (-77.04, 38.89, 100, 100)]
+    setlist = [
+        ('projection', projection),
+        ('gcps', gcps),
+    ]
+
+    # You can either use tiff_set
+    tifftools.tiff_set('aerial_imagery.tif', 'aerial_imagery_geospatial.tif', setlist=setlist)
+
+    # Or you can use set_projection and set_gcps
+    tifftools.commands.set_projection('aerial_imagery.tif', projection, output='aerial_imagery_geospatial.tif', overwrite=True)
+    tifftools.commands.set_gcps('aerial_imagery.tif', gcps, output='aerial_imagery_geospatial.tif', overwrite=True)
+
+Set tags:
+
+.. code-block:: python
+
+    import tifftools
+    setlist = [
+        ('ImageDescription', 'Dog digging'),
+        ('Orientation', '2'),
+    ]
+    tifftools.tiff_set('photograph.tif', 'photograph_tagged.tif', setlist=setlist)
+
+Unset tags:
+
+.. code-block:: python
+
+    import tifftools
+    unsetlist = [
+        'ImageDescription',
+        'Orientation',
+    ]
+    tifftools.tiff_set('photograph_tagged.tif', 'photograph_untagged.tif', unset=unsetlist)
+
+Copy tags from one image to another:
+
+.. code-block:: python
+
+    import tifftools
+    target = 'photograph_tagged.tif'
+    setfrom = [
+        ('ImageDescription', target),
+        ('Orientation', target),
+    ]
+    tifftools.tiff_set('mypic.tif', 'mypic_tagged.tif', setfrom=setfrom)
 
 Purpose
 =======
