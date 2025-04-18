@@ -19,6 +19,16 @@ To install with conda::
 
     conda install -c conda-forge tifftools
 
+
+.. highlights::
+
+  By default, tifftools does not require any external dependencies.
+
+
+  **Note:** When setting projections on TIFF files, projections that are not
+  specified as EPSG codes require ``pyproj`` to be interpreted correctly.
+  Installing ``tifftools[geo]`` will install ``pyproj``.
+
 Commands
 ========
 
