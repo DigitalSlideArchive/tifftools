@@ -10,7 +10,8 @@ import struct
 import sys
 import tempfile
 
-from .constants import Datatype, Tag, get_or_create_tag
+from .constants import (Datatype, EPSGTypes, GeoTiffAngularUnits, GeoTiffGeoKey, GeoTiffLinearUnits,
+                        GeoTiffTransformations, Tag, get_or_create_tag)
 from .exceptions import TifftoolsError
 from .tifftools import read_tiff, read_tiff_limit_ifds, write_tiff
 
@@ -512,7 +513,18 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
                 logger.info('Tag %s is not present', tag)
             ifd['tags'].pop(int(tag), None)
     if setlist is not None:
+        full_setlist = []
         for tagspec, value in setlist:
+            if tagspec.lower() == 'projection':
+                full_setlist += _set_projection(source, value,
+                                                output=output, overwrite=overwrite, **kwargs)
+            elif tagspec.lower() == 'gcps':
+                full_setlist += _set_gcps(source, value, output=output,
+                                          overwrite=overwrite, **kwargs)
+            else:
+                full_setlist.append((tagspec, value))
+
+        for tagspec, value in full_setlist:
             tag, datatype, ifd, data = _tagspec_to_ifd(tagspec, info, value)
             if data is not None:
                 ifd['tags'][int(tag)] = {
@@ -570,6 +582,163 @@ def tiff_set(source, output=None, overwrite=False, setlist=None, unset=None,
                 shutil.copyfileobj(fsrc, fdest)
     else:
         _tiff_set(source, output, setlist, unset, setfrom, overwrite=overwrite, **kwargs)
+
+
+def _set_projection(source, projection, **kwargs):
+    """
+    Set geospatial projection in a tiff file.
+
+    :param source: the source path.
+    :param projection: the projection, expressed as an integer representing an EPSG code or
+        expressed as a string that can be interpreted by `pyproj.CRS.from_string()`.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
+    geokeys = None
+    if isinstance(projection, str) and 'epsg:' in projection.lower():
+        projection = int(projection.lower().replace('epsg:', ''))
+    if isinstance(projection, int):
+        for geotype, codes in EPSGTypes.items():
+            if projection in codes:
+                geokeys = dict(
+                    GTModelType=(
+                        3 if geotype == 'geocentric' else
+                        2 if geotype == 'geographic_2d' else 1
+                    ),
+                    GTRasterType=1,
+                    GeographicType=projection,
+                )
+
+    if geokeys is None:
+        try:
+            import pyproj
+        except ImportError:
+            msg = (
+                f'pyproj is required to interpret projection {projection}. '
+                'Please install tifftools[geo].'
+            )
+            raise TifftoolsError(msg)
+
+        proj = pyproj.CRS.from_string(projection)
+        proj_dict = proj.to_dict()
+        angular_units = GeoTiffAngularUnits.get(proj.prime_meridian.unit_name).value
+        geokeys = dict(
+            GTModelType=3 if proj.is_geocentric else 2 if proj.is_geographic else 1,
+            GTRasterType=1,
+            GeographicType=proj.to_epsg(),
+            GeogCitation=proj_dict.get('datum'),
+            GeogAngularUnits=angular_units,
+            GeogSemiMajorAxis=proj.ellipsoid.semi_major_metre,
+            GeogInvFlattening=proj.ellipsoid.inverse_flattening,
+            ProjStdParallel1=proj_dict.get('lat_1'),
+            ProjStdParallel2=proj_dict.get('lat_2'),
+            ProjNatOriginLat=proj_dict.get('lat_0'),
+            ProjNatOriginLong=proj_dict.get('lon_0'),
+        )
+        if proj.coordinate_operation:
+            method_name = proj.coordinate_operation.method_name
+            transformation = GeoTiffTransformations.get(method_name.replace(' ', ''))
+            geokeys['GTCitation'] = method_name
+            geokeys['ProjCoordTrans'] = transformation
+        if proj_dict.get('units'):
+            linear_units = GeoTiffLinearUnits.get(proj_dict.get('units')).value
+            geokeys['ProjLinearUnits'] = linear_units
+
+    geokeys = {k: v for k, v in geokeys.items() if v is not None}
+
+    key_directory_version = 1
+    key_revision = 1
+    minor_revision = 0
+    number_of_keys = len(geokeys)
+    header = ' '.join(str(v) for v in [
+        key_directory_version,
+        key_revision,
+        minor_revision,
+        number_of_keys,
+    ])
+
+    geokey_tag = f'{header}'
+    doubles = []
+    asciis = []
+    for geokey, value in geokeys.items():
+        key_spec = GeoTiffGeoKey.get(geokey)
+        key_id = key_spec.value
+        data_type = key_spec.datatype
+        value_count = 1
+        if data_type == Datatype.SHORT:
+            tag_location = 0
+            value_offset = int(value)
+        elif data_type == Datatype.DOUBLE:
+            tag_location = Tag.get('GeoDoubleParamsTag').value
+            value_offset = len(doubles)
+            doubles.append(float(value))
+        else:
+            tag_location = Tag.get('GeoAsciiParamsTag').value
+            value_offset = len(asciis)
+            asciis.append(str(value))
+        geokey_tag += f' {key_id} {tag_location} {value_count} {value_offset}'
+    doubles_tag = ' '.join(str(v) for v in doubles)
+    asciis_tag = '|'.join(asciis)
+
+    return [
+        ('GeoKeyDirectoryTag', geokey_tag),
+        ('GeoDoubleParamsTag', doubles_tag),
+        ('GeoAsciiParamsTag', asciis_tag),
+    ]
+
+
+def set_projection(source, projection, **kwargs):
+    """
+    Set geospatial projection in a tiff file.
+
+    :param source: the source path.
+    :param projection: the projection, expressed as an integer representing an EPSG code or
+        expressed as a string that can be interpreted by `pyproj.CRS.from_string()`.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
+    tiff_set(
+        source,
+        setlist=_set_projection(source, projection, **kwargs),
+        **kwargs,
+    )
+
+
+def _set_gcps(source, gcps, **kwargs):
+    """
+    Set geospatial Ground Control Points (GCPs) in a tiff file.
+
+    :param source: the source path.
+    :param gcps: a list of tuples of the form (cx, cy, px, py),
+        where cx and cy represent a coordinate in projection space
+        and px and py represent a pixel position.
+        This argument may also be passed a space-separated string of
+        these values as a flat list.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
+    if isinstance(gcps, str):
+        gcps = list(zip(*[iter(gcps.split())] * 4))
+    tiepoint_tag = ' '.join(
+        f'{px} {py} 0 {cx} {cy} 0' for cx, cy, px, py in gcps
+    )
+    return [('ModelTiepointTag', tiepoint_tag)]
+
+
+def set_gcps(source, gcps, **kwargs):
+    """
+    Set geospatial Ground Control Points (GCPs) in a tiff file.
+
+    :param source: the source path.
+    :param gcps: a list of tuples of the form (cx, cy, px, py),
+        where cx and cy represent a coordinate in projection space
+        and px and py represent a pixel position.
+        This argument may also be passed a space-separated string of
+        these values as a flat list.
+    :param kwargs: additional arguments to pass to `tifftools.commands.tiff_set()`.
+    """
+    tiff_set(
+        source,
+        setlist=_set_gcps(source, gcps, **kwargs),
+        **kwargs,
+    )
 
 
 def main(args=None):

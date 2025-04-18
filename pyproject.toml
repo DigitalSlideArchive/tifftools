@@ -28,6 +28,9 @@ requires-python = ">=3.8"
 [project.scripts]
 tifftools = "tifftools:main"
 
+[project.optional-dependencies]
+geo = ['pyproj']
+
 [tool.setuptools]
 packages = { find = { exclude = ["tests*"] } } 
 
