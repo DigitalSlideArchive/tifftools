@@ -5,6 +5,7 @@ from .datastore import datastore
 
 
 def test_readme_code(tmp_path):
+    os.mkdir(f'{tmp_path}/results')
     imagePath = datastore.fetch('d043-200.tif')
     readmePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../README.rst')
     data = open(readmePath).read()
@@ -18,5 +19,7 @@ def test_readme_code(tmp_path):
             keep.append(line[4:])
         code = '\n'.join(keep).strip() + '\n'
         os.chdir(tmp_path)
-        shutil.copy(imagePath, 'photograph.tif')
+        for dest in ['photograph.tif', 'photo1.tif', 'photo2.tif',
+                     'photo3.tif', 'aerial_imagery.tif', 'mypic.tif']:
+            shutil.copy(imagePath, dest)
         exec(code)
