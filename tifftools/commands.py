@@ -515,10 +515,10 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
     if setlist is not None:
         full_setlist = []
         for tagspec, value in setlist:
-            if tagspec.lower() == 'projection':
+            if str(tagspec).lower() == 'projection':
                 full_setlist += _set_projection(source, value,
                                                 output=output, overwrite=overwrite, **kwargs)
-            elif tagspec.lower() == 'gcps':
+            elif str(tagspec).lower() == 'gcps':
                 full_setlist += _set_gcps(source, value, output=output,
                                           overwrite=overwrite, **kwargs)
             else:
