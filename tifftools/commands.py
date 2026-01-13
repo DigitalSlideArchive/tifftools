@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import copy
 import json
 import logging
@@ -415,13 +416,12 @@ def _value_to_types(value):
     if value in ('@-', b'@-'):
         value = sys.stdin.buffer.read()
     elif isinstance(value, str) and value.startswith('@'):
-        value = open(value[1:], 'rb').read()
+        with open(value[1:], 'rb') as fptr:
+            value = fptr.read()
     results = {Datatype.UNDEFINED: value if isinstance(value, bytes) else str(value).encode()}
     if isinstance(value, bytes):
-        try:
+        with contextlib.suppress(UnicodeDecodeError):
             results[Datatype.ASCII] = value.decode()
-        except UnicodeDecodeError:
-            pass
     else:
         results[Datatype.ASCII] = str(value)
     if Datatype.ASCII in results and re.search(r'\d', results[Datatype.ASCII]):
@@ -884,11 +884,9 @@ use 'sample.tiff,1'."""
     # Compelteion installation will be something like
     #   eval "$(register-python-argcomplete tifftools)"
     # See argcomplete's documentation.
-    try:
+    with contextlib.suppress(ImportError):
         import argcomplete
         argcomplete.autocomplete(mainParser)
-    except ImportError:
-        pass
 
     # This allows argumentsForAllParsers to be either before or after the
     # command.
