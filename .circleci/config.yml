@@ -166,11 +166,15 @@ jobs:
     docker:
       - image: python:3.8-slim
     steps:
-      - checkout
+      - checkout:
+          fetch_depth: 0
       - run:
           name: Install tox
-          command: pip install tox
-      - deploy:
+          command: pip install tox setuptools_scm
+      - run:
+          name: Check version number
+          command: python -c 'import sys, setuptools_scm; sys.exit(1 if setuptools_scm.get_version().strip()=="0.0.0" else 0)'
+      - run:
           name: Run release command via tox
           # Piping through cat does less buffering of the output but can
           # consume the exit code
