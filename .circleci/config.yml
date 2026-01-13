@@ -24,10 +24,32 @@ commands:
       - run:
           name: Upload coverage
           command: codecov --tries 10 --required --disable search pycov gcov --root project --file .tox/coverage/py_coverage.xml
+  pyenv:
+    description: "Install python via pyenv"
+    parameters:
+      version:
+        type: string
+    steps:
+      - run:
+          name: Upgrade pyenv
+          command: |
+            sudo rm -rf /opt/circleci/.pyenv
+            sudo bash -c 'curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | PYENV_ROOT=/opt/circleci/.pyenv bash'
+            sudo chmod -R 777 /opt/circleci/.pyenv/
+            pyenv install --list list
+      - run:
+          name: Use pyenv to install python
+          command: |
+            pyenv install -s << parameters.version >>
+      - run:
+          name: Use pyenv to set python version
+          command: |
+            pyenv versions
+            pyenv global << parameters.version >>
 jobs:
   py38:
     docker:
-      - image: python:3.8
+      - image: python:3.8-slim
     steps:
       - checkout
       - tox:
@@ -35,7 +57,7 @@ jobs:
       - coverage
   py39:
     docker:
-      - image: python:3.9
+      - image: python:3.9-slim
     steps:
       - checkout
       - tox:
@@ -43,7 +65,7 @@ jobs:
       - coverage
   py310:
     docker:
-      - image: python:3.10
+      - image: python:3.10-slim
     steps:
       - checkout
       - tox:
@@ -51,7 +73,7 @@ jobs:
       - coverage
   py311:
     docker:
-      - image: python:3.11
+      - image: python:3.11-slim
     steps:
       - checkout
       - tox:
@@ -59,7 +81,7 @@ jobs:
       - coverage
   py312:
     docker:
-      - image: python:3.12
+      - image: python:3.12-slim
     steps:
       - checkout
       - tox:
@@ -67,11 +89,39 @@ jobs:
       - coverage
   py313:
     docker:
-      - image: python:3.13
+      - image: python:3.13-slim
     steps:
       - checkout
       - tox:
           env: py313
+      - coverage
+  py313t:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - pyenv:
+          version: "3.13t"
+      - checkout
+      - tox:
+          env: py313t
+      - coverage
+  py314:
+    docker:
+      - image: python:3.14-slim
+    steps:
+      - checkout
+      - tox:
+          env: py314
+      - coverage
+  py314t:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - pyenv:
+          version: "3.14t"
+      - checkout
+      - tox:
+          env: py314t
       - coverage
   pypy38:
     docker:
@@ -107,14 +157,14 @@ jobs:
       - coverage
   lint_and_docs:
     docker:
-      - image: python:3.8
+      - image: python:3.8-slim
     steps:
       - checkout
       - tox:
           env: lint
   release:
     docker:
-      - image: python:3.8
+      - image: python:3.8-slim
     steps:
       - checkout
       - run:
@@ -171,6 +221,27 @@ workflows:
             branches:
               ignore:
                 - gh-pages
+      - py313t:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - py314:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - py314t:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
       - pypy38:
           filters:
             tags:
@@ -214,6 +285,9 @@ workflows:
             - py311
             - py312
             - py313
+            - py313t
+            - py314
+            - py314t
             - pypy38
             - pypy39
             - pypy310
