@@ -59,6 +59,15 @@ def test_read_tiff_warning_file(test_path, msg, caplog):
     assert msg in caplog.text
 
 
+def test_read_tiff_maxunknown(caplog):
+    path = os.path.join(os.path.dirname(__file__), 'data', 'bad_datatype.tif')
+    with caplog.at_level(logging.INFO):
+        info = tifftools.read_tiff(path, maxUnknown=0)
+    assert 'Exceeded maximum' in caplog.text
+    assert 'maxUnknown' in info
+    assert info['unknownDatatype'] == 1
+
+
 def test_read_tiff_bad_unicode():
     path = os.path.join(os.path.dirname(__file__), 'data', 'bad_unicode.tif')
     info = tifftools.read_tiff(path)

@@ -48,17 +48,19 @@ def tiff_merge(*args, **kwargs):
     return tiff_concat(*args, **kwargs)
 
 
-def tiff_concat(source, output, overwrite=False, **kwargs):
+def tiff_concat(source, output, overwrite=False, maxUnknown=None, **kwargs):
     """
     Concatenate a list of source files into a single output file.
 
     :param source: a list of input paths
     :param output: the output path
-    :overwrite: if False, throw an error if the output already exists.
+    :param overwrite: if False, throw an error if the output already exists.
+    :param maxUnknown: if not None, stop reading after this many unknown
+        datatypes.
     """
     ifds = []
     for path in source:
-        nextInfo = read_tiff(path)
+        nextInfo = read_tiff(path, maxUnknown=maxUnknown)
         ifds.extend(nextInfo['ifds'])
     _apply_flags_to_ifd(ifds, **kwargs)
     write_tiff(ifds, output, allowExisting=overwrite,
@@ -253,13 +255,15 @@ class ExtendedJsonEncoder(json.JSONEncoder):
         return '%s:%s' % (type(obj).__name__, repr(obj))
 
 
-def tiff_dump(source, max=20, dest=None, **kwargs):
+def tiff_dump(source, max=20, dest=None, maxUnknown=None, **kwargs):
     """
     Print the tiff information.
 
     :param source: the source path or a list of source paths.
     :param max: the maximum number of items to display for lists.
     :param dest: an open stream to write to.
+    :param maxUnknown: if not None, stop reading after this many unknown
+        datatypes.
     """
     dest = sys.stdout if dest is None else dest
     if isinstance(source, list):
@@ -273,11 +277,11 @@ def tiff_dump(source, max=20, dest=None, **kwargs):
                 dest.write('%s:\n' % _yaml_escape_key(src))
             else:
                 dest.write('-- %s --\n' % src)
-            tiff_dump(src, max=max, dest=dest, **kwargs)
+            tiff_dump(src, max=max, dest=dest, maxUnknown=maxUnknown, **kwargs)
             if kwargs.get('outformat') == 'json':
                 dest.write(',\n' if srcidx + 1 != len(source) else '\n}')
         return
-    info = read_tiff(source)
+    info = read_tiff(source, maxUnknown=maxUnknown)
     if kwargs.get('outformat') == 'json':
         json.dump(info, dest, indent=2, cls=ExtendedJsonEncoder)
         return
@@ -334,7 +338,7 @@ def _make_split_name(prefix, num, neededChars):
     return str(prefix) + suffix
 
 
-def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
+def tiff_split(source, prefix=None, subifds=False, overwrite=False, maxUnknown=None, **kwargs):
     """
     Split a tiff file into separated directories.
 
@@ -346,8 +350,10 @@ def tiff_split(source, prefix=None, subifds=False, overwrite=False, **kwargs):
         only the SubIFD tag is so split out (not, for instance, EXIF IFD).
     :param overwrite: if False, throw an error if any of the output paths
         already exist.
+    :param maxUnknown: if not None, stop reading after this many unknown
+        datatypes.
     """
-    info = read_tiff(source)
+    info = read_tiff(source, maxUnknown=maxUnknown)
     numOutput = len(list(_iterate_ifds(info['ifds'], subifds=subifds)))
     neededChars = max(int(math.ceil(math.log(numOutput) / math.log(26))), 3)
     if not overwrite:
@@ -486,7 +492,7 @@ def _tagspec_to_ifd(tagspec, info, value=None):
 
 
 def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
-              overwrite=False, **kwargs):
+              overwrite=False, maxUnknown=None, **kwargs):
     """
     Set or unset tags in a tiff file.
 
@@ -504,8 +510,10 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
         the same datatype as the tifffile it is read from.
     :param overwrite: if False, throw an error if any of the output paths
         already exist.
+    :param maxUnknown: if not None, stop reading after this many unknown
+        datatypes.
     """
-    info = read_tiff(source)
+    info = read_tiff(source, maxUnknown=maxUnknown)
     if unset is not None:
         for tagspec in unset:
             tag, datatype, ifd, data = _tagspec_to_ifd(tagspec, info)
@@ -535,7 +543,7 @@ def _tiff_set(source, output=None, setlist=None, unset=None, setfrom=None,
                 logger.warning('Could not determine data for tag %s', tagspec)
     if setfrom is not None:
         for tagspec, tiffpath in setfrom:
-            setinfo = read_tiff(tiffpath)
+            setinfo = read_tiff(tiffpath, maxUnknown=maxUnknown)
             tag, datatype, ifd, data = _tagspec_to_ifd(tagspec, info)
             if int(tag) not in setinfo['ifds'][0]['tags']:
                 logger.warning('Tag %s is not in %s', tagspec, tiffpath)
@@ -780,6 +788,12 @@ use 'sample.tiff,1'."""
         'args': ('--stop-on-warning', '-X'),
         'kwargs': dict(
             dest='warningIsError', action='store_true', help='Treat warnings as errors.'),
+    }, {
+        'args': ('--unknown', '--max-unknown', '--max_unknown'),
+        'kwargs': dict(
+            dest='maxUnknown', type=int, help='Maximum number of unknown '
+            'datatypes to read before stopping reading.  Default or less than '
+            'zero is no limit.'),
     }]
     mainParser = argparse.ArgumentParser(description=description, epilog=epilog)
     secondaryParser = argparse.ArgumentParser(description=description, add_help=False)

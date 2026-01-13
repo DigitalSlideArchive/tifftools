@@ -52,6 +52,7 @@ ENV/
 node_modules/
 
 .vscode/
+*.sw[po]
 
 # Ignore a local docker-compose yaml file
 docker-compose.local.yml
