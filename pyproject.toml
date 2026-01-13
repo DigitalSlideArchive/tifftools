@@ -20,6 +20,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Topic :: Utilities',
 ]
 urls = {Repository = "https://github.com/DigitalSlideArchive/tifftools"}
@@ -32,7 +33,7 @@ tifftools = "tifftools:main"
 geo = ['pyproj']
 
 [tool.setuptools]
-packages = { find = { exclude = ["tests*"] } } 
+packages = { find = { exclude = ["tests*"] } }
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
@@ -103,6 +104,7 @@ lint.select = [
     "Q",  # flake8-quotes
     "RET",
     "RSE",
+    "SIM",
     "T",  # print statements
     "W",  # pycodestyle warnings
     "YTT",  # flake8-2020
@@ -116,7 +118,7 @@ lint.select = [
 "docs/*.ipynb" = ["B018", "E402", "E501", "T201", "T203"]
 "docs/*.py" = ["E501", "T201", "T203"]
 "examples/*" = ["T201", "T203"]
-"test/*" = ["T201", "T203"]
+"tests/*" = ["T201", "T203", "SIM115", "SIM300"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"

@@ -1,6 +1,7 @@
 # flake8: noqa: E501
 # Disable flake8 line-length check (E501), it makes this file harder to read
 
+import contextlib
 import struct
 
 from .exceptions import UnknownTagError
@@ -43,11 +44,9 @@ class TiffConstant(int):
             intOther = int(other)
             return self.value == intOther
         except ValueError:
-            try:
+            with contextlib.suppress(ValueError):
                 intOther = int(other, 0)
                 return self.value == intOther
-            except ValueError:
-                pass
         except TypeError:
             return False
         return self.name.upper() == other.upper()
@@ -111,10 +110,8 @@ class TiffConstantSet:
         return hasattr(self, str(other))
 
     def __getattr__(self, key):
-        try:
+        with contextlib.suppress(ValueError, TypeError):
             key = str(int(key, 0))
-        except (ValueError, TypeError):
-            pass
         try:
             return self.__dict__[key.upper()]
         except KeyError:
@@ -825,7 +822,7 @@ EPSGTypes = {
 
 
 def EstimateJpegQuality(jpegTables):
-    try:
+    with contextlib.suppress(Exception):
         qtables = jpegTables.split(b'\xff\xdb', 1)[1]
         qtables = qtables[2:struct.unpack('>H', qtables[:2])[0]]
         # Only process the first table
@@ -835,8 +832,6 @@ def EstimateJpegQuality(jpegTables):
             if values[58] < 100:
                 return int(100 - values[58] / 2)
             return int(5000.0 / 2.5 / values[15])
-    except Exception:
-        pass
 
 
 def GeoKeysToDict(keys, ifd, dest=None, linePrefix=''):

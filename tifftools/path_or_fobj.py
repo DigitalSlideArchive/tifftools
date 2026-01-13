@@ -45,7 +45,7 @@ def OpenPathOrFobj(pathOrObj, mode='rb'):
         # This doesn't use the TemporaryFile context manager, as it is useful
         # to have this temporary file exist after this context is finished and
         # allow it to be garbage-collected to close.
-        fobj = tempfile.TemporaryFile('w+b')
+        fobj = tempfile.TemporaryFile('w+b')  # noqa: SIM115
         shutil.copyfileobj(pathOrObj, fobj)
         fobj.seek(0)
         yield fobj
