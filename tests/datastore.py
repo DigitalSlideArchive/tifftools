@@ -48,4 +48,5 @@ datastore = DKCPooch(
     ),
     base_url='https://data.kitware.com/api/v1/file/hashsum/{algo}/{hashvalue}/download',
     registry=registry,
+    retry_if_failed=10,
 )
