@@ -36,7 +36,7 @@ def check_offset(filelen, offset, length):
     return allowed
 
 
-def read_tiff(path):
+def read_tiff(path, maxUnknown=None):
     """
     Read the non-imaging data from a TIFF and return a Python structure with
     the results.  The path may optionally be terminated with
@@ -78,12 +78,16 @@ def read_tiff(path):
     - [ifds]: if the tag contains sub-ifds, this is a list of lists of IFDs.
 
     :param path: the file or stream to read.
+    :param maxUnknown: if not None, stop reading after this many unknown
+        datatypes.
     :returns: a dictionary of information on the tiff file.
     """
     limitIFDs = None
     info = {
         'ifds': [],
     }
+    if maxUnknown is not None and maxUnknown >= 0:
+        info['maxUnknown'] = maxUnknown
     if not is_filelike_object(path):
         for splits in range(1, len(str(path).split(','))):
             parts = str(path).rsplit(',', splits)
@@ -191,6 +195,12 @@ def read_ifd(tiff, info, ifdOffset, ifdList, tagSet=Tag):
             'datapos': tiff.tell() - datalen,
         }
         if datatype not in Datatype:
+            if 'maxUnknown' in info:
+                info.setdefault('unknownDatatype', 0)
+                info['unknownDatatype'] += 1
+                if info['unknownDatatype'] + info.get('unknownTag', 0) > info['maxUnknown']:
+                    logger.info('Exceeded maximum unknown limit')
+                    return None
             logger.warning(
                 'Unknown datatype %d (0x%X) in tag %d (0x%X)', datatype, datatype, tag, tag)
             continue
