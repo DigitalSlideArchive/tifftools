@@ -167,7 +167,7 @@ jobs:
       - image: python:3.8-slim
     steps:
       - checkout:
-          fetch_depth: 0
+          method: full
       - run:
           name: Install tox
           command: pip install tox setuptools_scm
