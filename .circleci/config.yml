@@ -162,6 +162,26 @@ jobs:
       - checkout
       - tox:
           env: lint
+  checkrelease:
+    docker:
+      - image: python:3.8-slim
+    steps:
+      - checkout:
+          method: full
+      - run:
+          name: Install git
+          command: apt-get update -yq && apt-get install -yq git
+      - run:
+          name: Install tox
+          command: pip install tox setuptools_scm
+      - run:
+          name: Check version number
+          command: python -c 'import sys, setuptools_scm; print(setuptools_scm.get_version().strip()); sys.exit(1 if setuptools_scm.get_version().strip()=="0.0.0" else 0)'
+      - run:
+          name: Run release command via tox
+          # Piping through cat does less buffering of the output but can
+          # consume the exit code
+          command: tox -e checkrelease | cat; test ${PIPESTATUS[0]} -eq 0
   release:
     docker:
       - image: python:3.8-slim
@@ -169,11 +189,14 @@ jobs:
       - checkout:
           method: full
       - run:
+          name: Install git
+          command: apt-get update -yq && apt-get install -yq git
+      - run:
           name: Install tox
           command: pip install tox setuptools_scm
       - run:
           name: Check version number
-          command: python -c 'import sys, setuptools_scm; sys.exit(1 if setuptools_scm.get_version().strip()=="0.0.0" else 0)'
+          command: python -c 'import sys, setuptools_scm; print(setuptools_scm.get_version().strip()); sys.exit(1 if setuptools_scm.get_version().strip()=="0.0.0" else 0)'
       - run:
           name: Run release command via tox
           # Piping through cat does less buffering of the output but can
@@ -281,7 +304,7 @@ workflows:
             branches:
               ignore:
                 - gh-pages
-      - release:
+      - checkrelease:
           requires:
             - py38
             - py39
@@ -297,6 +320,15 @@ workflows:
             - pypy310
             - pypy311
             - lint_and_docs
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore:
+                - gh-pages
+      - release:
+          requires:
+            - checkrelease
           filters:
             tags:
               only: /^v.*/
